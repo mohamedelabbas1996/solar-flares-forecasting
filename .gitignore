@@ -8,6 +8,8 @@ __pycache__/
 
 # Distribution / packaging
 .Python
+model_checkpoints/
+jobs/
 build/
 develop-eggs/
 dist/
@@ -25,6 +27,7 @@ share/python-wheels/
 *.egg-info/
 .installed.cfg
 *.egg
+*.out
 MANIFEST
 
 # PyInstaller
