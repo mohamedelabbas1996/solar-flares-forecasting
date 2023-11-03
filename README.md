@@ -1,3 +1,3 @@
 # solar-flares-forecasting
-Application of Machine Learning on Solar Flares Forecasting 
+Solar Flares Forecasting using Machine Learning Models
 
