@@ -75,7 +75,7 @@ def collect_goes_data():
     event_type = "FL"
     tstart = "1996/01/01"
     tend = "2020/10/29"
-
+    print(f"collecting goes data from {tstart} to {tend}")
     result = Fido.search(
         a.Time(tstart, tend),
         a.hek.EventType(event_type),
@@ -153,8 +153,8 @@ if __name__ == "__main__":
     client = drms.Client()
     harps, tarps = get_ars("datasets/harp_noaa.txt"), get_ars("datasets/tarp_noaa.txt")
     # collect_active_region_magnetograms(client, harps[:1])
-    collect_dataseries(client, harps[:3], "sharp")
-    collect_dataseries(client, tarps[:3], "smarp")
+    #collect_dataseries(client, harps[:1], "sharp")
+    #collect_dataseries(client, tarps[:1], "smarp")
     collect_goes_data()
     # image = collect_active_region_magnetograms(client, 2)
     # print(np.isnan(image).any(axis=0))

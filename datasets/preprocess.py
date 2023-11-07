@@ -26,11 +26,23 @@ def get_max_flare(flares):
             max_flare = flare
     return max_flare
 
+def label_region(goes_data, region_data):
+    region_data["label"] = ""
+    region_data["observation_period"] = ""
+    region_data["prediction_period"] = ""
+    goes_data = goes_data[goes_data["NOAA_ARS"]== []]
+    goes_data["event_starttime"] = goes_data["event_starttime"].apply(
+        lambda x: convert2datetime(x)
+    )
+    goes_data["event_endtime"] = goes_data["event_endtime"].apply(
+        lambda x: convert2datetime(x)
+    )
+
 
 def label_data(goes_data, sharp_smarp_data):
     goes_df: pd.DataFrame = pd.read_csv(goes_data)
     sharp_smarp_df: pd.DataFrame = pd.read_csv(sharp_smarp_data)
-
+    noaa_nums = sharp_smarp_data.loc[0, "NOAA_ARS"].split(",")
     sharp_smarp_df["label"] = ""
     sharp_smarp_df["observation_period"] = ""
     sharp_smarp_df["prediction_period"] = ""
@@ -49,6 +61,7 @@ def label_data(goes_data, sharp_smarp_data):
         observation_period_filtered_goes = goes_df[
             (goes_df["event_starttime"] <= window_end)
             & (window_start <= goes_df["event_endtime"])
+            & goes_df["ar_noaanum"] == 
         ]
         observation_period = observation_period_filtered_goes["fl_goescls"].tolist()
 
@@ -97,4 +110,4 @@ def preprocess_magnetograms():
 
 
 if __name__ == "__main__":
-    label_data("data/goes.csv", "data/sharp.csv")
+    label_data("data/goes.csv", "data/sharp/sharp1.csv")
