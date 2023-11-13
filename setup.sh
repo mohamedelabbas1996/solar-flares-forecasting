@@ -28,7 +28,7 @@ wget http://jsoc.stanford.edu/doc/data/mdi/all_tarps_with_noaa_ars.txt -O data/t
 
 
 echo "Downloading data"
-# python datasets/collect_data.py SHARP
-# python datasets/collect_data.py SMARP
+python datasets/collect_data.py
+
 
 echo 
