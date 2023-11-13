@@ -20,7 +20,7 @@ mkdir data/SMARP/preprocessed_magnetograms
 mkdir data/SMARP/summary_paramters_all_active_regions
 
 mkdir data/GOES
-wget https://drive.google.com/file/d/1MBG2bsgx3OkJoNfEA63a39bHEWGNWEJ8/view?usp=sharing -O data/GOES/goes.csv
+wget https://raw.githubusercontent.com/mohamedelabbas1996/solar-flares-forecasting/main/data/GOES/goes.csv -O data/GOES/goes.csv
 
 mkdir data/tarp_harp_to_noaa
 wget http://jsoc.stanford.edu/doc/data/hmi/harpnum_to_noaa/all_harps_with_noaa_ars.txt -O data/tarp_harp_to_noaa/harp_noaa.txt
