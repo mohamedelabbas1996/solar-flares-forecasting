@@ -1,0 +1,5 @@
+solar-flares-forecasting/
+data/
+*.pyc
+commands.md
+wandb/

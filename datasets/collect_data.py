@@ -9,7 +9,7 @@ from sunpy.net import attrs as a
 
 
 SHARP_SERIES = "hmi.sharp_cea_720s"
-SMARP_SERIES = "mdi.smarp_cea_720s"
+SMARP_SERIES = "mdi.smarp_cea_96m"
 JSOC_URL = "http://jsoc.stanford.edu"
 
 
@@ -26,55 +26,67 @@ def parse_tai_string(tstr):
     return datetime.datetime(year, month, day, hour, minute)
 
 
-def collect_active_region_data_series(client, ar_number, dataseries="sharp"):
-    if dataseries == "sharp":
+def collect_active_region_summary_parameters(client, ar_number, dataset):
+    if dataset == "SHARP":
         keys = client.query(
             f"{SHARP_SERIES}[{ar_number}][][]",
-            key="T_REC, MEANGBL, R_VALUE, AREA , HARPNUM, NOAA_ARS",
+            key="T_REC, USFLUXL, MEANGBL, R_VALUE, AREA , HARPNUM, NOAA_ARS",
         )
+
+        # convert SHARP data cadence to 96m
+        # SHARP's original cadence is 720s,by selecting the data with step = 8 we convert it to 96m cadence
+
+        keys = keys.loc[
+            [i for j, i in enumerate(keys.index) if j % 8 == 0]
+        ].reset_index(drop=True)
 
     else:
         keys = client.query(
             f"{SMARP_SERIES}[{ar_number}][][]",
-            key="T_REC, MEANGBL, R_VALUE, AREA, TARPNUM, NOAA_ARS",
+            key="T_REC, MEANGBL,USFLUXL, R_VALUE, AREA, TARPNUM, NOAA_ARS",
         )
 
     return keys
 
 
-def collect_active_region_magnetograms(client, ar_numbers, dataseries="sharp"):
+def collect_magnetograms(client, ar_numbers, dataset):
     for ar_number in ar_numbers:
-        if dataseries == "sharp":
+        if dataset == "SHARP":
             keys, segments = client.query(
                 f"{SHARP_SERIES}[{ar_number}][][]", key="T_REC", seg="magnetogram"
             )
+            keys = keys.loc[[i for j, i in enumerate(keys.index) if j % 8 == 0]]
+            segments = segments.loc[keys.index]
 
         else:
             keys, segments = client.query(
-                f"{SMARP_SERIES}[{ar_number}][][]", seg="magnetogram"
+                f"{SMARP_SERIES}[{ar_number}][][]", key="T_REC", seg="magnetogram"
             )
-        return download_magnetograms(
-            ar_numbers, keys.T_REC.tolist(), dataseries, segments.magnetogram.tolist()
+        download_active_region_magnetograms(
+            ar_number, keys.T_REC.tolist(), dataset, segments.magnetogram.tolist()
         )
 
 
-def download_magnetograms(ar_number, datetimes, series, urls):
+def download_active_region_magnetograms(ar_number, datetimes, dataset, urls):
     magnetograms = []
     for date_time, url in zip(datetimes, urls):
         full_url = JSOC_URL + url
         print(
-            f"downloading magnetogram for {series} region {ar_number} from {full_url}"
+            f"downloading magnetogram at datetime {date_time} for {dataset} region {ar_number} from {full_url}"
         )
         image = fits.open(full_url)
         magnetograms.append((url, image[1].data))
-        np.save(f"data/magnetograms/{ar_number}_{series}_{date_time}", image[1].data)
+        np.save(
+            f"data/{dataset}/raw_magnetograms/{ar_number}_{str(parse_tai_string(date_time))}",
+            image[1].data,
+        )
     return magnetograms
-    
+
 
 def collect_goes_data():
     event_type = "FL"
-    tstart = "1996/01/01"
-    tend = "2020/10/29"
+    tstart = "2010/01/01"
+    tend = "2011/10/29"
     print(f"collecting goes data from {tstart} to {tend}")
     result = Fido.search(
         a.Time(tstart, tend),
@@ -89,23 +101,24 @@ def collect_goes_data():
     ]
 
     print((filtered_results["event_starttime"]))
-    filtered_results.write("data/goes.csv", format="csv", overwrite=True)
-    df = pd.read_csv("data/goes.csv")
+    filtered_results.write("data/GOES/goes.csv", format="csv", overwrite=True)
+    df = pd.read_csv("data/GOES/goes.csv")
     df["event_starttime"] = df["event_starttime"].apply(
         lambda x: datetime.datetime.strptime(x[:-4], "%Y-%m-%d %H:%M:%S")
     )
     df["event_endtime"] = df["event_endtime"].apply(
         lambda x: datetime.datetime.strptime(x[:-4], "%Y-%m-%d %H:%M:%S")
     )
-    df.to_csv("data/goes.csv")
+    df.to_csv("data/GOES/goes.csv")
 
 
-def collect_dataseries(client, ars, dataseries="sharp"):
+def collect_summary_parameters(client, ars, dataset="SHARP"):
     df = pd.DataFrame(
         columns=[
             "T_REC",
             "MEANGBL",
             "R_VALUE",
+            "USFLUXL",
             "AREA",
             "HARPNUM",
             "TARPNUM",
@@ -113,13 +126,15 @@ def collect_dataseries(client, ars, dataseries="sharp"):
         ]
     )
     for ar in ars:
-        print(f" collecting data series for {dataseries} region {ar}")
-        ar_data = collect_active_region_data_series(client, ar)
+        print(f" collecting data series for {dataset} region {ar}")
+        ar_data = collect_active_region_summary_parameters(client, ar, dataset=dataset)
+        print(ar_data.shape, ar_data.head())
         ar_data["T_REC"] = ar_data["T_REC"].apply(lambda x: parse_tai_string(x))
-        ar_data.to_csv(f"data/{dataseries}/{ar}.csv")
+        ar_data.to_csv(f"data/{dataset}/raw_summary_parameters/{ar}.csv")
         df = pd.concat([df, ar_data], axis=0)
+
     df = df.sort_values(by=["T_REC"])
-    df.to_csv(f"data/{dataseries}.csv")
+    df.to_csv(f"data/{dataset}/summary_paramters_all_active_regions/{dataset}.csv")
     return df
 
 
@@ -151,11 +166,11 @@ def get_ars(file):
 
 if __name__ == "__main__":
     client = drms.Client()
-    harps, tarps = get_ars("datasets/harp_noaa.txt"), get_ars("datasets/tarp_noaa.txt")
-    # collect_active_region_magnetograms(client, harps[:1])
-    #collect_dataseries(client, harps[:1], "sharp")
-    #collect_dataseries(client, tarps[:1], "smarp")
-    collect_goes_data()
-    # image = collect_active_region_magnetograms(client, 2)
-    # print(np.isnan(image).any(axis=0))
-    # print(image.shape, image)
+    harps, tarps = get_ars("data/tarp_harp_to_noaa/harp_noaa.txt"), get_ars(
+        "data/tarp_harp_to_noaa/tarp_noaa.txt"
+    )
+    collect_magnetograms(client, harps[:5], dataset="SHARP")
+    collect_magnetograms(client, tarps[:5], dataset="SMARP")
+    collect_summary_parameters(client, harps[:50], dataset="SHARP")
+    collect_summary_parameters(client, tarps[:50], dataset="SMARP")
+    # collect_goes_data(start_year, end_year)
