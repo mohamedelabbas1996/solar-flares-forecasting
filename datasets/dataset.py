@@ -5,55 +5,50 @@ import drms
 import pandas as pd
 import pickle
 import torch
+import numpy as np
 import torchvision.transforms as T
 
 
-class SHARPDataset(Dataset):
-    def __init__(self):
-        super().__init__()
-
-    def __getitem__(self, index) -> Any:
-        return super().__getitem__(index)
-
-    def __len__(self):
-        return 0
+def read_df_from_pickle(path):
+    with open(path, "rb") as f:
+        df = pickle.load(f)
+    return df
 
 
 class SolarFlaresData(Dataset):
     def __init__(self, df):
         self.df = df
         self.resize_transform = T.Resize((128, 128))
+        self.df = self.random_undersample(df)
 
     def __getitem__(self, idx):
         return (
-            torch.from_numpy(self.df.loc[idx, "params"]),
+            torch.from_numpy(self.df.loc[idx, "params"]).to(torch.float32),
             self.resize_transform(
-                torch.from_numpy(self.df.loc[idx, "magnetogram"]).unsqueeze(0)
+                torch.from_numpy(self.df.loc[idx, "magnetogram"])
+                .unsqueeze(0)
+                .to(torch.float32)
             ),
             torch.tensor(self.df.loc[idx, "label"]),
         )
+
+    def random_undersample(self, df):
+        positive_samples_count = len(df[df.label == 1])
+        negative_samples_count = len(df[df.label == 0])
+        samples_dropped_count = negative_samples_count - positive_samples_count
+        indices_to_drop = np.random.choice(
+            df[df.label == 0].index, samples_dropped_count, replace=False
+        )
+        df_dropped = df.drop(indices_to_drop)
+        return df_dropped.reset_index()
 
     def __len__(self):
         return self.df.shape[0]
 
 
-class SMARPDataset(Dataset):
-    def __init__(self):
-        super().__init__()
-
-    def __getitem__(self, index) -> Any:
-        return super().__getitem__(index)
-
-    def __len__(self):
-        return 0
-
-
 if __name__ == "__main__":
-    with open(
-        "/Users/mohamedelabbas/solar-flares-forecasting/solar-flares-forecasting/data/sharp/preprocessed/all_sharps.pkl",
-        "rb",
-    ) as f:
-        df = pickle.load(f)
+    df = read_df_from_pickle("data/SHARP/SHARP.pkl")
+
     sf = SolarFlaresData(df)
-    print(sf[10][0].shape, sf[10][1].shape, sf[10][2])
+    print(sf[10][0], sf[10][1], sf[10][2])
     print(len(sf))

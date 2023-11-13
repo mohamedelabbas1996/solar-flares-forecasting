@@ -12,7 +12,8 @@ from collections import defaultdict
 # line of sight magnetograms are normalized using the mean and std of SHARP data
 # summary parameters are standardized separately, the mean and std for each dataset is used to perform the standardization
 def z_score_standardize(x, mean, std):
-    return (x - mean) / std
+    epsilon = 0.00001
+    return (x - mean) / (std + epsilon)
 
 
 def preprocess_magnetograms(dataset):
@@ -189,7 +190,7 @@ def preprocess_region(region_df):
             region_df.at[idx, "bad_record_reason"] = (
                 region_df.at[idx, "bad_record_reason"] + "," + "nan summary parameter"
             )
-        if np.all(np.isnan(region_df.at[idx, "magnetogram"])):
+        if np.any(np.isnan(region_df.at[idx, "magnetogram"])):
             region_df.at[idx, "bad_magnetogram"] = True
             region_df.at[idx, "bad_record"] = True
             region_df.at[idx, "bad_record_reason"] = (
@@ -275,9 +276,7 @@ def preprocess_region(region_df):
     # preprocessed_region.to_csv(
     #     f"data/{dataset}/preprocessed_summary_parameters/{region_df.at[0, 'region_no']}.csv"
     # )
-    # region_df.to_csv(
-    #     f"data/{'sharp' if region_df.at[0, 'region_type']=='harp' else 'smarp'}/preprocessed/{region_df.at[0, 'region_no']}_raw.csv"
-    # )
+    # region_df.to_csv(f"data/{dataset}/{region_df.at[0, 'region_no']}_raw.csv")
     return preprocessed_region
 
 

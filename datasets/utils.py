@@ -1,4 +1,25 @@
 import datetime
+import pandas as pd
+import pickle
+
+
+def read_df_from_csv(path):
+    return pd.read_csv(path)
+
+
+def write_df_to_csv(df, path):
+    df.to_csv(path)
+
+
+def read_df_from_pickle(path):
+    with open(path, "rb") as f:
+        df = pickle.load(f)
+    return df
+
+
+def write_df_to_pickle(df, path):
+    with open(path, "wb") as f:
+        pickle.dump(df, f)
 
 
 def map_noaa_to_harps_tarps(harps_noaa, tarps_noaa):
