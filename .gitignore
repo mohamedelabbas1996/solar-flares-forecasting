@@ -1,5 +1,7 @@
 solar-flares-forecasting/
-data/
 *.pyc
 commands.md
 wandb/
+data/SHARP/
+data/SMARP/
+data/tarp_harp_to_noaa/
