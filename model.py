@@ -15,6 +15,7 @@ class CNN(nn.Module):
         self.linear2 = nn.Linear(128, 64)
         self.bn2 = nn.BatchNorm1d(64)
         self.drop_out2 = nn.Dropout(0.5)
+        self.linear3 = nn.Linear(64, 2)
 
     def forward(self, x):
         for idx, l in enumerate(self.cnn):
@@ -33,6 +34,7 @@ class CNN(nn.Module):
         # print(x.shape)
         x = self.drop_out2(x)
         # print(x.shape)
+        x = self.linear3(x)
         return x
 
 
