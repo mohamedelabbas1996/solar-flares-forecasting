@@ -16,13 +16,22 @@ def z_score_standardize(x, mean, std):
     return (x - mean) / (std + epsilon)
 
 
-def preprocess_magnetograms(dataset):
+def preprocess_magnetograms(dataset, regions=None):
     mean, std = get_magnetograms_mean_std("SHARP")
     raw_magnetograms_path = os.path.join("data", dataset, "raw_magnetograms")
     preprocessed_magnetograms_path = os.path.join(
         "data", dataset, "preprocessed_magnetograms"
     )
-    for magnetogram_file in os.listdir(raw_magnetograms_path):
+    magnetogram_files = (
+        [
+            file
+            for file in os.listdir(raw_magnetograms_path)
+            if any([file.startswith(str(region_no)) for region_no in regions])
+        ]
+        if regions
+        else os.listdir(raw_magnetograms_path)
+    )
+    for magnetogram_file in magnetogram_files:
         magnetogram_array = np.load(
             os.path.join(raw_magnetograms_path, magnetogram_file)
         )
@@ -33,15 +42,24 @@ def preprocess_magnetograms(dataset):
         )
 
 
-def preprocess_summary_parameters(dataset):
+def preprocess_summary_parameters(dataset, regions=None):
     raw_summary_parameters_path = os.path.join(
         "data", dataset, "raw_summary_parameters"
     )
     preprocessed_summary_parameters_path = os.path.join(
         "data", dataset, "preprocessed_summary_parameters"
     )
+    summary_params_files = (
+        [
+            file
+            for file in os.listdir(raw_summary_parameters_path)
+            if any([file.startswith(str(region_no)) for region_no in regions])
+        ]
+        if regions
+        else os.listdir(raw_summary_parameters_path)
+    )
     summary_params_mean_std = get_summary_parameters_mean_std(dataset)
-    for ar_file in os.listdir(raw_summary_parameters_path):
+    for ar_file in summary_params_files:
         df = read_df_from_csv(os.path.join(raw_summary_parameters_path, ar_file))
         for param in ["USFLUXL", "MEANGBL", "R_VALUE", "AREA"]:
             df[param] = z_score_standardize(
@@ -96,6 +114,8 @@ def get_flare_intensity(flare):
     if flare == "":
         return 0
     intensities = {"D": 0, "A": 10, "B": 20, "C": 30, "M": 40, "X": 50}
+    if len(flare) == 1:
+        return intensities[flare]
     flare_intensity = intensities[flare[0]] + float(flare[1:])
     return flare_intensity
 
@@ -276,12 +296,14 @@ def preprocess_region(region_df):
     # preprocessed_region.to_csv(
     #     f"data/{dataset}/preprocessed_summary_parameters/{region_df.at[0, 'region_no']}.csv"
     # )
-    # region_df.to_csv(f"data/{dataset}/{region_df.at[0, 'region_no']}_raw.csv")
+    region_df.to_csv(
+        f"data/{dataset}/summary_parameters_preprocessed_raw/{region_df.at[0, 'region_no']}_raw.csv"
+    )
     return preprocessed_region
 
 
 def label_region_summary_parameters(goes_df, sharp_smarp_df):
-    noaa_nums = sharp_smarp_df.loc[0, "NOAA_ARS"]
+    noaa_nums = str(sharp_smarp_df.loc[0, "NOAA_ARS"]).split(",")
     # print("active reigon number", noaa_nums)
     sharp_smarp_df["label"] = ""
     sharp_smarp_df["observation_period"] = ""
@@ -289,7 +311,14 @@ def label_region_summary_parameters(goes_df, sharp_smarp_df):
 
     # print(goes_df.shape, "shape before filtering")
     # print(goes_df.head())
-    goes_df = goes_df[goes_df["ar_noaanum"] == noaa_nums]
+
+    for noaa_num in noaa_nums:
+        print(
+            f"region NOAA {noaa_num} associated with {len(goes_df[goes_df['ar_noaanum'] == int(noaa_num)])} flares"
+        )
+
+    goes_df = goes_df[goes_df["ar_noaanum"].isin(set(map(int, noaa_nums)))]
+    print(f"HARP/TARP region associated with {len(goes_df)} flares")
     # print(goes_df.shape, "shape after filtering")
     # print(goes_df.head())
 
@@ -314,8 +343,10 @@ def label_region_summary_parameters(goes_df, sharp_smarp_df):
         prediction_period = prediction_period_filtered_goes["fl_goescls"].tolist()
         # print(observation_period, get_max_flare(observation_period))
         # print(prediction_period, get_max_flare(prediction_period))
-        # print(prediction_period_filtered_goes, window_start, window_end)
-        # print(observation_period_filtered_goes, window_start, window_end)
+        # if str(12473) in noaa_nums:
+        #     print(len(prediction_period_filtered_goes), window_start, window_end)
+        #     print(len(observation_period_filtered_goes), window_start, window_end)
+        #     print(goes_df)
         max_obserevation = get_max_flare((observation_period))
         max_prediction = get_max_flare((prediction_period))
         # if we have strong event in the prediction period
@@ -360,9 +391,17 @@ def write_df_to_pickle(df, path):
         pickle.dump(df, f)
 
 
-def get_all_regions_ar_params_magnetograms(dataset):
+def get_all_regions_ar_params_magnetograms(dataset, regions=None):
     summary_params_path = f"data/{dataset}/summary_parameters_magnetograms"
-    pkl_files = [file for file in os.listdir(summary_params_path)]
+    pkl_files = (
+        [
+            file
+            for file in os.listdir(summary_params_path)
+            if any([file.startswith(str(region_no)) for region_no in regions])
+        ]
+        if regions
+        else [file for file in os.listdir(summary_params_path)]
+    )
     all_preprocessed_active_regions = []
 
     for file in pkl_files:
@@ -383,6 +422,7 @@ def preprocess_goes(path, file_name):
     goes_df["event_endtime"] = goes_df["event_endtime"].apply(
         lambda x: convert2datetime(x)
     )
+    goes_df["fl_goescls"] = goes_df["fl_goescls"].str.replace(",", ".")
     write_df_to_pickle(goes_df, os.path.join(path, "goes.pkl"))
 
 
@@ -391,26 +431,26 @@ if __name__ == "__main__":
     preprocess_goes("data/GOES", "goes.csv")
     goes_df = read_df_from_pickle("data/GOES/goes.pkl")
 
-    print("Reading HARPS and TARPs ...")
-    harps, tarps = get_ars("data/tarp_harp_to_noaa/harp_noaa.txt"), get_ars(
-        "data/tarp_harp_to_noaa/tarp_noaa.txt"
-    )
-    print(
-        f"there are {len(harps)} sharp active regions and {len(tarps)} smarps active regions"
-    )
-    harps = [(region_no, "SHARP") for region_no in harps[:5]]
-    tarps = [(region_no, "SMARP") for region_no in tarps[:5]]
-    harps_tarps = harps + tarps
+    # print("Reading HARPS and TARPs ...")
+    # harps, tarps = get_ars("data/tarp_harp_to_noaa/harp_noaa.txt"), get_ars(
+    #     "data/tarp_harp_to_noaa/tarp_noaa.txt"
+    # )
+    # print(
+    #     f"there are {len(harps)} sharp active regions and {len(tarps)} smarps active regions"
+    # )
+    harps = [(region_no, "SHARP") for region_no in [1, 2, 6206, 6327, 4097, 7169]]
+    # tarps = [(region_no, "SMARP") for region_no in tarps[:5]]
+    # harps_tarps = harps + tarps
 
-    print("Preprocessing magnetograms")
-    preprocess_magnetograms("SHARP")
-    preprocess_magnetograms("SMARP")
+    print("Preprocessing magnetograms ...")
+    preprocess_magnetograms("SHARP", regions=[1, 2, 6206, 6327, 4097, 7169])
+    # preprocess_magnetograms("SMARP")
 
     print("Preprocessing summary parameters ...")
-    preprocess_summary_parameters("SHARP")
-    preprocess_summary_parameters("SMARP")
+    preprocess_summary_parameters("SHARP", regions=[1, 2, 6206, 6327, 4097, 7169])
+    # preprocess_summary_parameters("SMARP")
 
-    for region, dataset in harps_tarps:
+    for region, dataset in harps:
         print(f"preprocessing {dataset} region {region}")
         ar_df = read_df_from_csv(
             f"data/{dataset}/preprocessed_summary_parameters/{region}.csv"
@@ -424,8 +464,10 @@ if __name__ == "__main__":
         )
         print(preprocessed_region.head())
 
-    for dataset in ["SHARP", "SMARP"]:
-        all_ars_params_df = get_all_regions_ar_params_magnetograms(dataset)
+    for dataset in ["SHARP"]:
+        all_ars_params_df = get_all_regions_ar_params_magnetograms(
+            dataset, regions=[1, 2, 6206, 6327, 4097, 7169]
+        )
         write_df_to_pickle(
             all_ars_params_df,
             f"data/{dataset}/{dataset}.pkl",

@@ -6,7 +6,9 @@ import datetime
 from astropy.io import fits
 from sunpy.net import Fido
 from sunpy.net import attrs as a
-
+import time
+from utils import ACTIVE_REGIONS_WITH_POSITIVE_FLAREING_EVENTS
+import traceback
 
 SHARP_SERIES = "hmi.sharp_cea_720s"
 SMARP_SERIES = "mdi.smarp_cea_96m"
@@ -26,12 +28,36 @@ def parse_tai_string(tstr):
     return datetime.datetime(year, month, day, hour, minute)
 
 
+def retrieve_magnetogram(url):
+    while True:
+        try:
+            image = fits.open(url)
+            return image
+
+        except Exception as e:
+            print(f"Error {e}")
+            traceback.print_exc()
+            time.sleep(2)
+
+
+def retrieve_summary_params(ar, dataseries):
+    while True:
+        try:
+            keys = client.query(
+                f"{dataseries}[{ar}][][]",
+                key="T_REC, USFLUXL, MEANGBL, R_VALUE, AREA , HARPNUM, NOAA_ARS",
+            )
+            return keys
+        except Exception as e:
+            print(f"Error {e}")
+            print(f"{dataseries}[{ar}][][]")
+            traceback.print_exc()
+            time.sleep(5)
+
+
 def collect_active_region_summary_parameters(client, ar_number, dataset):
     if dataset == "SHARP":
-        keys = client.query(
-            f"{SHARP_SERIES}[{ar_number}][][]",
-            key="T_REC, USFLUXL, MEANGBL, R_VALUE, AREA , HARPNUM, NOAA_ARS",
-        )
+        keys = retrieve_summary_params(ar_number, SHARP_SERIES)
 
         # convert SHARP data cadence to 96m
         # SHARP's original cadence is 720s,by selecting the data with step = 8 we convert it to 96m cadence
@@ -41,10 +67,7 @@ def collect_active_region_summary_parameters(client, ar_number, dataset):
         ].reset_index(drop=True)
 
     else:
-        keys = client.query(
-            f"{SMARP_SERIES}[{ar_number}][][]",
-            key="T_REC, MEANGBL,USFLUXL, R_VALUE, AREA, TARPNUM, NOAA_ARS",
-        )
+        keys = retrieve_summary_params(ar_number, SMARP_SERIES)
 
     return keys
 
@@ -74,7 +97,11 @@ def download_active_region_magnetograms(ar_number, datetimes, dataset, urls):
         print(
             f"downloading magnetogram at datetime {date_time} for {dataset} region {ar_number} from {full_url}"
         )
-        image = fits.open(full_url)
+        if os.path.exists(
+            f"data/{dataset}/raw_magnetograms/{ar_number}_{str(parse_tai_string(date_time))}.npy"
+        ):
+            continue
+        image = retrieve_magnetogram(full_url)
         magnetograms.append((url, image[1].data))
         np.save(
             f"data/{dataset}/raw_magnetograms/{ar_number}_{str(parse_tai_string(date_time))}",
@@ -127,6 +154,8 @@ def collect_summary_parameters(client, ars, dataset="SHARP"):
     )
     for ar in ars:
         print(f" collecting data series for {dataset} region {ar}")
+        if os.path.exists(f"data/{dataset}/raw_summary_parameters/{ar}.csv"):
+            continue
         ar_data = collect_active_region_summary_parameters(client, ar, dataset=dataset)
         print(ar_data.shape, ar_data.head())
         ar_data["T_REC"] = ar_data["T_REC"].apply(lambda x: parse_tai_string(x))
@@ -169,8 +198,32 @@ if __name__ == "__main__":
     harps, tarps = get_ars("data/tarp_harp_to_noaa/harp_noaa.txt"), get_ars(
         "data/tarp_harp_to_noaa/tarp_noaa.txt"
     )
-    collect_magnetograms(client, harps[:5], dataset="SHARP")
-    collect_magnetograms(client, tarps[:5], dataset="SMARP")
-    collect_summary_parameters(client, harps[:50], dataset="SHARP")
-    collect_summary_parameters(client, tarps[:50], dataset="SMARP")
+    noaa_harps, noaa_tarps = map_noaa_to_harps_tarps(
+        "data/tarp_harp_to_noaa/harp_noaa.txt", "data/tarp_harp_to_noaa/tarp_noaa.txt"
+    )
+    harp_regions_with_positive_events = set()
+    tarp_regions_with_positive_events = set()
+    for region in ACTIVE_REGIONS_WITH_POSITIVE_FLAREING_EVENTS:
+        if noaa_harps.get(str(region)) != None:
+            harp_regions_with_positive_events.add(noaa_harps.get(str(region)))
+        if noaa_tarps.get(str(region)) != None:
+            tarp_regions_with_positive_events.add(noaa_tarps.get(str(region)))
+
+    # print(noaa_harps.get("12473"), noaa_tarps.get("12473"))
+    print(
+        len(harp_regions_with_positive_events), len(tarp_regions_with_positive_events)
+    )
+    collect_magnetograms(
+        client, list(harp_regions_with_positive_events)[:2], dataset="SHARP"
+    )
+    collect_summary_parameters(
+        client, list(harp_regions_with_positive_events)[:2], dataset="SHARP"
+    )
+    # collect_magnetograms(
+    #     client, set(tarp_regions_with_positive_events[:10]), dataset="SMARP"
+    # )
+
+    # collect_summary_parameters(
+    #     client, set(tarp_regions_with_positive_events[:10]), dataset="SMARP"
+    # )
     # collect_goes_data(start_year, end_year)
