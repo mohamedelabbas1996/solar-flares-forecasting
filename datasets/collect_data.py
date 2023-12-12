@@ -9,6 +9,8 @@ from sunpy.net import attrs as a
 import time
 from utils import ACTIVE_REGIONS_WITH_POSITIVE_FLAREING_EVENTS
 import traceback
+import multiprocessing
+import time
 
 SHARP_SERIES = "hmi.sharp_cea_720s"
 SMARP_SERIES = "mdi.smarp_cea_96m"
@@ -40,7 +42,7 @@ def retrieve_magnetogram(url):
             time.sleep(2)
 
 
-def retrieve_summary_params(ar, dataseries):
+def retrieve_summary_params(client, ar, dataseries):
     while True:
         try:
             keys = client.query(
@@ -55,9 +57,10 @@ def retrieve_summary_params(ar, dataseries):
             time.sleep(5)
 
 
-def collect_active_region_summary_parameters(client, ar_number, dataset):
+def collect_active_region_summary_parameters(ar_number, dataset):
+    client = drms.Client()
     if dataset == "SHARP":
-        keys = retrieve_summary_params(ar_number, SHARP_SERIES)
+        keys = retrieve_summary_params(client, ar_number, SHARP_SERIES)
 
         # convert SHARP data cadence to 96m
         # SHARP's original cadence is 720s,by selecting the data with step = 8 we convert it to 96m cadence
@@ -67,7 +70,7 @@ def collect_active_region_summary_parameters(client, ar_number, dataset):
         ].reset_index(drop=True)
 
     else:
-        keys = retrieve_summary_params(ar_number, SMARP_SERIES)
+        keys = retrieve_summary_params(client, ar_number, SMARP_SERIES)
 
     return keys
 
@@ -139,7 +142,9 @@ def collect_goes_data():
     df.to_csv("data/GOES/goes.csv")
 
 
-def collect_summary_parameters(client, ars, dataset="SHARP"):
+def collect_summary_parameters(ars, dataset="SHARP"):
+    client = drms.Client()
+    print(f"args: {client}{ars}")
     df = pd.DataFrame(
         columns=[
             "T_REC",
@@ -185,6 +190,14 @@ def map_noaa_to_harps_tarps(harps_noaa, tarps_noaa):
     return noaa_harps, noaa_tarps
 
 
+def collect_summary_parameters_wrapper(args):
+    return collect_summary_parameters(client, args)
+
+
+def square(x):
+    return x + x
+
+
 def get_ars(file):
     lines = open(file).readlines()[1:]
     ars = []
@@ -210,15 +223,15 @@ if __name__ == "__main__":
             tarp_regions_with_positive_events.add(noaa_tarps.get(str(region)))
 
     # print(noaa_harps.get("12473"), noaa_tarps.get("12473"))
-    print(
-        len(harp_regions_with_positive_events), len(tarp_regions_with_positive_events)
-    )
-    collect_magnetograms(
-        client, list(harp_regions_with_positive_events)[:2], dataset="SHARP"
-    )
-    collect_summary_parameters(
-        client, list(harp_regions_with_positive_events)[:2], dataset="SHARP"
-    )
+    # print(
+    #    len(harp_regions_with_positive_events), len(tarp_regions_with_positive_events)
+    #
+    # collect_magnetograms(
+    #   client, list(harp_regions_with_positive_events)[:2], dataset="SHARP"
+    # )
+    # collect_summary_parameters(
+    #   client, list(harp_regions_with_positive_events)[:2], dataset="SHARP"
+    # )
     # collect_magnetograms(
     #     client, set(tarp_regions_with_positive_events[:10]), dataset="SMARP"
     # )
@@ -227,3 +240,11 @@ if __name__ == "__main__":
     #     client, set(tarp_regions_with_positive_events[:10]), dataset="SMARP"
     # )
     # collect_goes_data(start_year, end_year)
+
+    with multiprocessing.Pool(processes=10) as pool:
+        args = [(r, "SHARP") for r in list(harp_regions_with_positive_events)[:20]]
+        print(args)
+        # args = [i for i in range(10)]
+        result = pool.starmap(collect_active_region_summary_parameters, args)
+
+    # print(result)

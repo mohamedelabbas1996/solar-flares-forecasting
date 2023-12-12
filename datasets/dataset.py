@@ -17,7 +17,7 @@ def read_df_from_pickle(path):
 
 class SolarFlaresData(Dataset):
     def __init__(self, df, random_undersample=True):
-        self.resize_transform = T.Resize((128, 128))
+        self.resize_transform = T.Resize((224, 224))
         self.df = self.random_undersample(df) if random_undersample else df
 
     def __getitem__(self, idx):
