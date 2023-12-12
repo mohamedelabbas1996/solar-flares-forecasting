@@ -1,5 +1,10 @@
 import torch
 import torch.nn as nn
+from transformers import (
+    ViTConfig,
+    ViTImageProcessor,
+    ViTForImageClassification,
+)
 
 
 class CNN(nn.Module):
@@ -68,13 +73,32 @@ class LSTM(nn.Module):
         return self.lstm(x)
 
 
+class ViT(nn.Module):
+    def __init__(self):
+        super().__init__()
+        config = ViTConfig(num_channels=1)
+        self.image_processor = ViTImageProcessor(
+            do_normalize=False, do_rescale=False, do_resize=False
+        )
+        self.vit = ViTForImageClassification(config)
+
+    def forward(self, x):
+        model_inputs = self.image_processor(x, return_tensors="pt")
+        outputs = self.vit(**model_inputs)
+        return outputs.logits
+
+
 if __name__ == "__main__":
     x = torch.rand(1, 4, 15)
     y = torch.tensor([1]).reshape(1, 1)
-    magnetogram = torch.rand(64, 1, 128, 128)
+    magnetogram = torch.rand(1, 1, 224, 224)
     cnn = CNN()
+
     # print(magnetogram.shape)
-    logits = cnn(magnetogram)
+    # logits = cnn(magnetogram)
+    vit = ViT()
+    labels = torch.randint(0, 2, (32,), dtype=torch.float32)
+    print(vit(magnetogram))
 # print(logits)
 
 # x = torch.rand(3, 15, 4)

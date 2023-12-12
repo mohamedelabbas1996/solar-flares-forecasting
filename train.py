@@ -3,9 +3,9 @@ import wandb
 import torch
 import pickle
 from datasets.dataset import SolarFlaresData
-from torch.optim import Adam
+from torch.optim import AdamW
 from torch.utils.data import DataLoader
-from model import CNN
+from model import CNN, ViT
 from tqdm import tqdm
 import torch
 import numpy as np
@@ -65,7 +65,7 @@ def region_based_split(dataset_df, train_regions, test_regions):
 
 lr = 0.001
 batch_size = 16
-num_epochs = 100
+num_epochs = 15
 device = "cuda" if torch.cuda.is_available() else "cpu"
 df = read_df_from_pickle("data/SHARP/SHARP.pkl")
 train_df, test_df = region_based_split(
@@ -82,9 +82,9 @@ test_loader = DataLoader(
     test_dataset, batch_size=batch_size, shuffle=True, drop_last=True
 )
 
-model = CNN()
+model = ViT()
 criterion = nn.CrossEntropyLoss()
-optimizer = Adam(model.parameters(), lr=0.001)
+optimizer = AdamW(model.parameters(), lr=0.001)
 model.train()
 train_losses = []
 val_losses = []
