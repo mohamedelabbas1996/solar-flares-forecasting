@@ -106,7 +106,8 @@ def validate_model(model, validation_loader, device):
 
 def main(args):
     # Initialize Weights & Biases
-    wandb.init(project="Solar Flares Forecasting", entity="hack1996man")
+    #wandb.init(project="Solar Flares Forecasting", entity="hack1996man")
+    wandb.init(mode="offline")
     
 
     # active region based split 
