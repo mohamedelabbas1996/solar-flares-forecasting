@@ -34,7 +34,7 @@ def train(model, optimizer, train_loader, validation_loader, num_epochs,criterio
             all_preds.extend(preds.view(-1).cpu().detach().numpy())
             all_targets.extend(target.view(-1).cpu().detach().numpy())
             
-            if (batch_idx+1) % 100== 0:
+            if (batch_idx) % 50== 0:
                 accuracy, precision, recall, validation_loss, cm, hss_score, tss_score = validate_model(model, validation_loader, device)
                 wandb.log({"validation_loss": validation_loss})
                  # Log metrics
