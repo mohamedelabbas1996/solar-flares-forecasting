@@ -31,8 +31,3 @@ wget http://jsoc.stanford.edu/doc/data/hmi/harpnum_to_noaa/all_harps_with_noaa_a
 wget http://jsoc.stanford.edu/doc/data/mdi/all_tarps_with_noaa_ars.txt -O data/tarp_harp_to_noaa/tarp_noaa.txt
 
 
-echo "Downloading data"
-python datasets/collect_data.py
-
-
-echo 
