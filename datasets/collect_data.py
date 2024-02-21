@@ -226,9 +226,9 @@ if __name__ == "__main__":
     # print(
     #    len(harp_regions_with_positive_events), len(tarp_regions_with_positive_events)
     #
-    # collect_magnetograms(
-    #   client, list(harp_regions_with_positive_events)[:2], dataset="SHARP"
-    # )
+    collect_magnetograms(
+      client, [1, 2, 6206, 6327, 4097, 7169], dataset="SHARP"
+    )
     # collect_summary_parameters(
     #   client, list(harp_regions_with_positive_events)[:2], dataset="SHARP"
     # )
@@ -241,10 +241,10 @@ if __name__ == "__main__":
     # )
     # collect_goes_data(start_year, end_year)
 
-    with multiprocessing.Pool(processes=10) as pool:
-        args = [(r, "SHARP") for r in list(harp_regions_with_positive_events)[:20]]
-        print(args)
-        # args = [i for i in range(10)]
-        result = pool.starmap(collect_active_region_summary_parameters, args)
+    # with multiprocessing.Pool(processes=10) as pool:
+    #     args = [(r, "SHARP") for r in list(harp_regions_with_positive_events)[:15]]
+    #     print(args)
+    #     # args = [i for i in range(10)]
+    #     result = pool.starmap(collect_active_region_summary_parameters, args)
 
     # print(result)

@@ -9,6 +9,7 @@ import os
 from collections import defaultdict
 
 
+
 # line of sight magnetograms are normalized using the mean and std of SHARP data
 # summary parameters are standardized separately, the mean and std for each dataset is used to perform the standardization
 def z_score_standardize(x, mean, std):
@@ -304,13 +305,10 @@ def preprocess_region(region_df):
 
 def label_region_summary_parameters(goes_df, sharp_smarp_df):
     noaa_nums = str(sharp_smarp_df.loc[0, "NOAA_ARS"]).split(",")
-    # print("active reigon number", noaa_nums)
     sharp_smarp_df["label"] = ""
     sharp_smarp_df["observation_period"] = ""
     sharp_smarp_df["prediction_period"] = ""
 
-    # print(goes_df.shape, "shape before filtering")
-    # print(goes_df.head())
 
     for noaa_num in noaa_nums:
         print(
@@ -319,11 +317,9 @@ def label_region_summary_parameters(goes_df, sharp_smarp_df):
 
     goes_df = goes_df[goes_df["ar_noaanum"].isin(set(map(int, noaa_nums)))]
     print(f"HARP/TARP region associated with {len(goes_df)} flares")
-    # print(goes_df.shape, "shape after filtering")
-    # print(goes_df.head())
+
 
     for idx, row in sharp_smarp_df.iterrows():
-        # print(type(row["T_REC"]))
         window_start = convert2datetime(row["T_REC"])
         window_end = window_start + datetime.timedelta(hours=24)
 
@@ -334,19 +330,13 @@ def label_region_summary_parameters(goes_df, sharp_smarp_df):
         ]
         observation_period = observation_period_filtered_goes["fl_goescls"].tolist()
 
-        window_start = window_start + datetime.timedelta(minutes=96)
+        window_start = window_start + datetime.timedelta(hours=24)
         window_end = window_start + datetime.timedelta(hours=24)
         prediction_period_filtered_goes = goes_df[
             (goes_df["event_starttime"] <= window_end)
             & (window_start <= goes_df["event_endtime"])
         ]
         prediction_period = prediction_period_filtered_goes["fl_goescls"].tolist()
-        # print(observation_period, get_max_flare(observation_period))
-        # print(prediction_period, get_max_flare(prediction_period))
-        # if str(12473) in noaa_nums:
-        #     print(len(prediction_period_filtered_goes), window_start, window_end)
-        #     print(len(observation_period_filtered_goes), window_start, window_end)
-        #     print(goes_df)
         max_obserevation = get_max_flare((observation_period))
         max_prediction = get_max_flare((prediction_period))
         # if we have strong event in the prediction period
@@ -365,9 +355,7 @@ def label_region_summary_parameters(goes_df, sharp_smarp_df):
         sharp_smarp_df.loc[idx, "prediction_period"] = max_prediction
         sharp_smarp_df.loc[idx, "label"] = label
 
-        # print(filtered_goes)
-    # print(sharp_smarp_df[sharp_smarp_df["label"] == "negative"])
-    # print(sharp_smarp_df[["observation_period", "prediction_period", "label"]])
+    
     sharp_smarp_df.to_csv("sharp_smarp_labelled.csv")
     return sharp_smarp_df
 
@@ -402,6 +390,7 @@ def get_all_regions_ar_params_magnetograms(dataset, regions=None):
         if regions
         else [file for file in os.listdir(summary_params_path)]
     )
+
     all_preprocessed_active_regions = []
 
     for file in pkl_files:
@@ -431,16 +420,16 @@ if __name__ == "__main__":
     preprocess_goes("data/GOES", "goes.csv")
     goes_df = read_df_from_pickle("data/GOES/goes.pkl")
 
-    # print("Reading HARPS and TARPs ...")
-    # harps, tarps = get_ars("data/tarp_harp_to_noaa/harp_noaa.txt"), get_ars(
-    #     "data/tarp_harp_to_noaa/tarp_noaa.txt"
-    # )
-    # print(
-    #     f"there are {len(harps)} sharp active regions and {len(tarps)} smarps active regions"
-    # )
+    print("Reading HARPS and TARPs ...")
+    harps, tarps = get_ars("data/tarp_harp_to_noaa/harp_noaa.txt"), get_ars(
+        "data/tarp_harp_to_noaa/tarp_noaa.txt"
+    )
+    print(
+        f"there are {len(harps)} sharp active regions and {len(tarps)} smarps active regions"
+    )
     harps = [(region_no, "SHARP") for region_no in [1, 2, 6206, 6327, 4097, 7169]]
-    # tarps = [(region_no, "SMARP") for region_no in tarps[:5]]
-    # harps_tarps = harps + tarps
+    tarps = [(region_no, "SMARP") for region_no in tarps[:5]]
+    harps_tarps = harps + tarps
 
     print("Preprocessing magnetograms ...")
     preprocess_magnetograms("SHARP", regions=[1, 2, 6206, 6327, 4097, 7169])
@@ -466,7 +455,7 @@ if __name__ == "__main__":
 
     for dataset in ["SHARP"]:
         all_ars_params_df = get_all_regions_ar_params_magnetograms(
-            dataset, regions=[1, 2, 6206, 6327, 4097, 7169]
+            dataset, regions=[1, 2, 6206, 6327, 4097, 7169, 1321, 1449]
         )
         write_df_to_pickle(
             all_ars_params_df,

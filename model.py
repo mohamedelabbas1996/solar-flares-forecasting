@@ -1,10 +1,13 @@
 import torch
 import torch.nn as nn
+from icecream import ic
 from transformers import (
     ViTConfig,
     ViTImageProcessor,
     ViTForImageClassification,
 )
+
+
 
 
 class CNN(nn.Module):
@@ -20,27 +23,28 @@ class CNN(nn.Module):
         self.linear2 = nn.Linear(128, 64)
         self.bn2 = nn.BatchNorm1d(64)
         self.drop_out2 = nn.Dropout(0.5)
-        self.linear3 = nn.Linear(64, 2)
+        self.linear3 = nn.Linear(64, 1)
 
     def forward(self, x):
-        print(x.shape)
+        #print(x.shape)
         for idx, l in enumerate(self.cnn):
-            print(idx, x.shape)
+            #print(idx, x.shape)
             x = l(x)
-        print(x.shape)
+        #ic(x.shape)
         x = x.squeeze(2).squeeze(2).reshape(-1, 64)
+        #ic(x.shape)
         x = self.linear(x)
-        print(x.shape)
+        #print(x.shape)
         x = self.bn(x)
-        print(x.shape)
+        #print(x.shape)
         x = self.drop_out(x)
-        print(x.shape)
+        #print(x.shape)
         x = self.linear2(x)
-        print(x.shape)
+        #print(x.shape)
         x = self.bn2(x)
-        print(x.shape)
+        #print(x.shape)
         x = self.drop_out2(x)
-        print(x.shape)
+        #print(x.shape)
         x = self.linear3(x)
         return x
 
@@ -49,7 +53,9 @@ class cnn_block(nn.Module):
     def __init__(self, filter_size, in_channels):
         super().__init__()
         self.cnn = nn.Conv2d(
-            in_channels=in_channels, out_channels=64, kernel_size=filter_size
+            in_channels=in_channels,
+            out_channels=64,
+            kernel_size=filter_size,
         )
         self.bn = nn.BatchNorm2d(64)
         self.pool = nn.MaxPool2d(kernel_size=2)
@@ -91,15 +97,18 @@ class ViT(nn.Module):
 if __name__ == "__main__":
     x = torch.rand(1, 4, 15)
     y = torch.tensor([1]).reshape(1, 1)
-    magnetogram = torch.rand(1, 1, 224, 224)
+    magnetogram = torch.rand(64, 1, 128, 128)
     cnn = CNN()
 
-    # print(magnetogram.shape)
-    # logits = cnn(magnetogram)
-    vit = ViT()
-    labels = torch.randint(0, 2, (32,), dtype=torch.float32)
-    print(vit(magnetogram))
-# print(logits)
+    ic(magnetogram.shape)
+    logits = cnn(magnetogram)
+    # ic(logits)
+    ic(logits.shape)
+
+#     vit = ViT()
+#     labels = torch.randint(0, 2, (32,), dtype=torch.float32)
+#     print(vit(magnetogram))
+# # print(logits)
 
 # x = torch.rand(3, 15, 4)
 # lstm = LSTM()

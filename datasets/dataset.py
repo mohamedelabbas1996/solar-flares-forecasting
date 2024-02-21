@@ -7,6 +7,8 @@ import pickle
 import torch
 import numpy as np
 import torchvision.transforms as T
+import torch
+from icecream import ic
 
 
 def read_df_from_pickle(path):
@@ -17,7 +19,7 @@ def read_df_from_pickle(path):
 
 class SolarFlaresData(Dataset):
     def __init__(self, df, random_undersample=True):
-        self.resize_transform = T.Resize((224, 224))
+        self.resize_transform = T.Resize((128, 128))
         self.df = self.random_undersample(df) if random_undersample else df
 
     def __getitem__(self, idx):
@@ -28,7 +30,9 @@ class SolarFlaresData(Dataset):
                 .unsqueeze(0)
                 .to(torch.float32)
             ),
-            torch.tensor(self.df.loc[idx, "label"]),
+            torch.tensor(self.df.loc[idx, "label"], dtype=torch.float32).reshape(
+                1,
+            ),
         )
 
     def random_undersample(self, df):
@@ -43,11 +47,37 @@ class SolarFlaresData(Dataset):
 
     def __len__(self):
         return self.df.shape[0]
+class MagnetogramDataset(Dataset):
+    def __init__(self, dataframe, magnetograms_dir="data/SHARP/magnetograms"):
+        """
+        Args:
+            dataframe (DataFrame): DataFrame containing the paths to magnetograms and labels.
+            transform (callable, optional): Optional transform to be applied on a sample.
+        """
+        self.dataframe = dataframe[dataframe["is_nan"] == False]
+        self.magnetograms_dir = magnetograms_dir
+
+    def __len__(self):
+        return len(self.dataframe)
+
+    def __getitem__(self, idx):
+        magnetogram_path = self.dataframe.iloc[idx]['magnetogram']
+        label = self.dataframe.iloc[idx]['label']
+        
+        # Load the magnetogram; assuming it's stored as a NumPy array
+        magnetogram = np.load(self.magnetograms_dir+"/"+magnetogram_path[1:].replace("/","_")+".npy")
+        
+        # Convert magnetogram and label to PyTorch tensors
+        magnetogram = torch.from_numpy(magnetogram).float()
+        label = torch.tensor(1).long()  if label=="positive"  else  torch.tensor(0).long()# Assuming label is an integer class label
+        
+        
+        return magnetogram, label
 
 
 if __name__ == "__main__":
     df = read_df_from_pickle("data/SHARP/SHARP.pkl")
 
     sf = SolarFlaresData(df)
-    print(sf[10][0], sf[10][1], sf[10][2])
+    ic(sf[10][0], sf[10][1], sf[10][2].shape)
     print(len(sf))

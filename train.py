@@ -1,172 +1,206 @@
-import torch.nn as nn
 import wandb
 import torch
-import pickle
-from datasets.dataset import SolarFlaresData
-from torch.optim import AdamW
-from torch.utils.data import DataLoader
-from model import CNN, ViT
-from tqdm import tqdm
-import torch
+import os
+from sklearn.metrics import accuracy_score, precision_score, recall_score, confusion_matrix
 import numpy as np
-import matplotlib.pyplot as plt
+import argparse
+import pandas as pd
+from model import CNN
+from torch.optim import Adam
+from torch.utils.data import DataLoader
+from datasets.dataset import MagnetogramDataset
+import torch.nn.functional as F
+import datetime
 
-
-def read_df_from_pickle(path):
-    with open(path, "rb") as f:
-        df = pickle.load(f)
-    return df
-
-
-def compute_accuracy(predictions, correct):
-    return (predictions == correct).sum().item() / predictions.shape[0]
-
-
-def confusion(prediction, target):
-    confusion_vector = prediction / target
-    # Element-wise division of the 2 tensors returns a new tensor which holds a
-    # unique value for each case:
-    #   1     where prediction and truth are 1 (True Positive)
-    #   inf   where prediction is 1 and truth is 0 (False Positive)
-    #   nan   where prediction and truth are 0 (True Negative)
-    #   0     where prediction is 0 and truth is 1 (False Negative)
-
-    true_positives = torch.sum(confusion_vector == 1).item()
-    false_positives = torch.sum(confusion_vector == float("inf")).item()
-    true_negatives = torch.sum(torch.isnan(confusion_vector)).item()
-    false_negatives = torch.sum(confusion_vector == 0).item()
-
-    return true_positives, false_positives, true_negatives, false_negatives
-
-
-def compute_tss(prediction, target):
-    TP, FP, TN, FN = confusion(prediction, target)
-    # print(TP, FP, TN, FN)
-    N = TN + FP
-    P = TP + FN
-    return TP / P - FP / N
-
-
-# wandb.login()
-# run = wandb.init(
-#     # Set the project where this run will be logged
-#     project="solar-flares-forecasting",
-#     # Track hyperparameters and run metadata
-#     config={
-#         "learning_rate": 0.001,
-#         "epochs": 2,
-#     },
-# )
-def region_based_split(dataset_df, train_regions, test_regions):
-    train_df = dataset_df[dataset_df.region_no.isin(set(train_regions))]
-    test_df = dataset_df[dataset_df.region_no.isin(set(test_regions))]
-    return train_df, test_df
-
-
-lr = 0.001
-batch_size = 16
-num_epochs = 15
-device = "cuda" if torch.cuda.is_available() else "cpu"
-df = read_df_from_pickle("data/SHARP/SHARP.pkl")
-train_df, test_df = region_based_split(
-    df, train_regions=[1, 6206], test_regions=[2, 6327]
-)
-print(f"regions in train set {train_df.region_no.unique()}")
-print(f"regions in validation set{test_df.region_no.unique()}")
-
-train_dataset = SolarFlaresData(train_df.reset_index(), random_undersample=False)
-train_loader = DataLoader(train_dataset, batch_size=batch_size, shuffle=True)
-
-test_dataset = SolarFlaresData(test_df.reset_index(), random_undersample=False)
-test_loader = DataLoader(
-    test_dataset, batch_size=batch_size, shuffle=True, drop_last=True
-)
-
-model = ViT()
-criterion = nn.CrossEntropyLoss()
-optimizer = AdamW(model.parameters(), lr=0.001)
-model.train()
-train_losses = []
-val_losses = []
-accuracies = []
-tss_scores = []
-for epoch in range(1, num_epochs):
-    epoch_train_losses = []
-    with tqdm(train_loader, unit="batch") as tepoch:
-        for _, data, target in tepoch:
-            tepoch.set_description(f"Epoch {epoch}")
-
-            data, target = data.to(device), target.to(device)
-            logits = model(data)
-            predictions = logits.argmax(dim=1, keepdim=True).squeeze()
-            loss = criterion(logits, target)
+# Assuming `model` and `optimizer` are defined and initialized according to the hyperparameters
+def train(model, optimizer, train_loader, validation_loader, num_epochs,criterion, device):
+   
+    model.train()
+    for epoch in range(num_epochs):
+        all_preds = []
+        all_targets = []
+        for batch_idx, (data, target) in enumerate(train_loader):
+            print(epoch, batch_idx)
+            data = data.unsqueeze(1)  # Assuming your model needs this shape
+            target = target.unsqueeze(1).float()  # Adjust for your model's expected input
+            data, target, model = data.to(device), target.to(device), model.to(device)
+            optimizer.zero_grad()
+            output = model(data)
+            loss = criterion(output, target)
+            wandb.log({"train_loss": loss.item()})
             loss.backward()
             optimizer.step()
-            epoch_train_losses.append(loss.item())
-            # acc = compute_accuracy(predictions, target)
-            # tss = compute_tss(acc)
-            tepoch.set_postfix(loss=loss.item())
+            
+            preds = torch.round(torch.sigmoid(output))
+            all_preds.extend(preds.view(-1).cpu().detach().numpy())
+            all_targets.extend(target.view(-1).cpu().detach().numpy())
+            
+            if (batch_idx+1) % 100== 0:
+                accuracy, precision, recall, validation_loss, cm, hss_score, tss_score = validate_model(model, validation_loader, device)
+                wandb.log({"validation_loss": validation_loss})
+                 # Log metrics
+                wandb.log({
+            "accuracy": accuracy,
+            " tn, fp, fn, tp":str(cm.ravel()),
+            "confusion_matrix" : cm,
+            "precision": precision,
+            "recall": recall,
+            "TSS": tss_score,
+            "HSS": hss_score,
+        })
+        
+        
+       
+        
+        # Save model checkpoint
+        datetime_str = datetime.datetime.now().strftime("%Y-%m-%d_%H-%M-%S")        
+        checkpoint_path = f"checkpoints/model_checkpoint_epoch_{wandb.run.name}_{epoch}_{datetime_str}.pth"
+        torch.save(model.state_dict(), checkpoint_path)
+        wandb.save(checkpoint_path)
+    
+    # Log the final model as an artifact
+    model_artifact = wandb.Artifact('model_weights', type='model')
+    model_artifact.add_file(f'checkpoints/model_checkpoint_epoch_{wandb.run.name}_{epoch}_{datetime_str}.pth')
+    wandb.log_artifact(model_artifact)
+
+
+def calculate_hss(true_positives, false_positives, true_negatives, false_negatives):
+    E = ((true_positives + false_negatives) * (true_positives + false_positives) + 
+         (false_negatives + true_negatives) * (false_positives + true_negatives)) / (true_positives + true_negatives + false_positives + false_negatives)
+    HSS = (true_positives + true_negatives - E) / (true_positives + true_negatives + false_positives + false_negatives - E)
+    return HSS
+
+def calculate_tss(true_positives, false_positives, true_negatives, false_negatives):
+    TSS = (true_positives / (true_positives + false_negatives)) - (false_positives / (false_positives + true_negatives))
+    return TSS
+
+def validate_model(model, validation_loader, device):
+    model.eval()
+    val_running_loss = 0.0
+    all_preds = []
+    all_targets = []
+
     with torch.no_grad():
-        with tqdm(test_loader, unit="batch") as tepoch:
-            batch_correct = []
-            batch_tss = []
-            batch_valid_losses = []
-            all_predictions = []
-            all_targets = []
-            for _, data, target in tepoch:
-                tepoch.set_description(f"Epoch {epoch}")
-                data, target = data.to(device), target.to(device)
-                logits = model(data)
-                predictions = logits.argmax(dim=1, keepdim=True).squeeze()
-                all_predictions.append(predictions)
-                all_targets.append(target)
-                loss = criterion(logits, target)
-                batch_valid_losses.append(loss.item())
-                correct = (predictions == target).sum().item()
-                batch_acc = compute_accuracy(predictions, target)
-                batch_correct.append(correct)
+        for data, target in validation_loader:
+            data = data.unsqueeze(1)  # Assuming your model needs this shape
+            target = target.unsqueeze(1).float()  # Adjust for your model's expected input
+            data, target, model = data.to(device), target.to(device), model.to(device)
+            output = model(data)
+            loss = F.binary_cross_entropy_with_logits(output, target)
+            val_running_loss += loss.item()
 
-                tepoch.set_postfix(
-                    valid_loss=loss.item(),
-                )
-    train_losses.append(np.mean(epoch_train_losses))
-    val_losses.append(np.mean(batch_valid_losses))
-    accuracies.append(np.sum(batch_correct) / len(test_dataset))
-    all_predictions = torch.cat(all_predictions, axis=0)
-    all_targets = torch.cat(all_targets, axis=0)
-    # print(all_targets.shape, all_predictions.shape)
-    tss_scores.append(compute_tss(all_predictions, all_targets))
-plt.figure(figsize=(12, 4))
+            preds = torch.round(torch.sigmoid(output))
+            all_preds.extend(preds.view(-1).cpu().numpy())
+            all_targets.extend(target.view(-1).cpu().numpy())
 
-# Plot Accuracy
-plt.subplot(1, 2, 1)
-plt.plot(range(len(accuracies)), accuracies, label="Accuracy", color="blue")
-plt.plot(range(len(tss_scores)), tss_scores, label="TSS Score", color="green")
-plt.title("Accuracy and TSS Score")
-plt.xlabel("Epoch")
-plt.ylabel("Metric Value")
-plt.legend()
+    accuracy = accuracy_score(all_targets, all_preds)
+    precision = precision_score(all_targets, all_preds)
+    recall = recall_score(all_targets, all_preds)
+    cm = confusion_matrix(all_targets, all_preds)
+    tn, fp, fn, tp = cm.ravel()
+    hss_score = calculate_hss(tp, fp, tn, fn)
+    tss_score = calculate_tss(tp, fp, tn, fn)
 
-# Plot Training and Validation Loss
-plt.subplot(1, 2, 2)
-plt.plot(range(len(train_losses)), train_losses, label="Training Loss", color="red")
-plt.plot(range(len(val_losses)), val_losses, label="Validation Loss", color="purple")
-plt.title("Training and Validation Loss")
-plt.xlabel("Epoch")
-plt.ylabel("Loss Value")
-plt.legend()
-plt.tight_layout()
-plt.show()
+    validation_loss = val_running_loss / len(validation_loader)
+    
+    return accuracy, precision, recall, validation_loss, cm, hss_score, tss_score
 
-print("Experiment summary")
-print(f"Number of epochs {num_epochs}")
-print(f"batch size {batch_size}")
-print(
-    f"train set length {len(train_df)} with {len(train_df[train_df.label == 1])} positive examples and {len(train_df[train_df.label == 0])} negative examples"
+def main(args):
+    # Initialize Weights & Biases
+    wandb.init(project="Solar Flares Forecasting", entity="hack1996man")
+    
+
+    # active region based split 
+    data_df = pd.read_csv("data/SHARP/sharp_dataset_20000.csv")[:1000]
+   
+    unique_regions = data_df['harp_no'].unique()
+
+# Shuffle the unique regions to ensure random splits
+    np.random.seed(42)
+    np.random.shuffle(unique_regions)
+
+# Calculate split sizes
+    train_size = int(len(unique_regions) * 0.7)
+    valid_size = int(len(unique_regions) * 0.15)
+
+# Split the unique regions
+    train_regions = unique_regions[:train_size]
+    valid_regions = unique_regions[train_size:train_size + valid_size]
+    test_regions = unique_regions[train_size + valid_size:]
+    
+    train_mask = data_df['harp_no'].isin(train_regions)
+
+    valid_mask = data_df['harp_no'].isin(valid_regions)
+    test_mask = data_df['harp_no'].isin(test_regions)
+
+    # Segment the DataFrame
+    train_df = data_df[train_mask]
+    valid_df = data_df[valid_mask]
+    test_df = data_df[test_mask]
+
+    # save splitted data
+    train_df.to_csv("data/SHARP/train_df.csv")
+    valid_df.to_csv("data/SHARP/valid_df.csv")
+    test_df.to_csv("data/SHARP/test_df.csv")
+
+
+
+    model = CNN()
+    criterion = F.binary_cross_entropy_with_logits
+    optimizer = Adam(model.parameters(), lr=args.lr)
+
+    config = dict(
+    model_architecture = str(model),
+    learning_rate = args.lr,
+    optimizer_name = "Adam",
+    batch_size =  args.batch_size,
+    num_epochs = args.num_epochs,
+    train_dataset_file_name = "data/SHARP/train_df.csv",
+    validation_dataset_file_name ="data/SHARP/test_df.csv",
+    loss_function = "F.binary_cross_entropy_with_logits"
 )
+    wandb.config.update(config)
+    wandb.config.update({
+        "train_data":"data/SHARP/train_df.csv",
+        "validation_data":"data/SHARP/valid_df.csv",
+        "test_data":"data/SHARP/test_df.csv"
+    })
+    # initilize model, optimizer, loss, datasets, train,test loaders
+    train_dataset = MagnetogramDataset(train_df, magnetograms_dir="data/SHARP/magnetograms/content/drive/MyDrive/sharp_data")
+    train_loader = DataLoader(train_dataset, batch_size=args.batch_size, shuffle=True)
 
-print(
-    f"test set length {len(test_df)} with {len(test_df[test_df.label == 1])} positive examples and {len(test_df[test_df.label == 0])} negative examples"
+    valid_dataset = MagnetogramDataset(valid_df, magnetograms_dir="data/SHARP/magnetograms/content/drive/MyDrive/sharp_data")
+    valid_loader = DataLoader(
+    valid_dataset, batch_size=args.batch_size, shuffle=True, drop_last=True
 )
-print(f"max accuracy {max(accuracies)}")
-print(f"max tss score {max(tss_scores)}")
+    test_dataset = MagnetogramDataset(test_df, magnetograms_dir="data/SHARP/magnetograms/content/drive/MyDrive/sharp_data")
+
+    test_loader = DataLoader(
+    test_dataset, batch_size=args.batch_size, shuffle=True, drop_last=True
+)
+    
+    device = "cuda" if torch.cuda.is_available() else 'cpu'
+    train(model, optimizer, train_loader, valid_loader, args.num_epochs, criterion, device)
+    accuracy, precision, recall, validation_loss, cm, hss_score, tss_score = validate_model(model, test_loader, device)
+
+    wandb.log({
+            "Test accuracy": accuracy,
+            "Test tn, fp, fn, tp":str(cm.ravel()),
+            "Test confusion_matrix" : cm,
+            "Test precision": precision,
+            "Test recall": recall,
+            "Test TSS": tss_score,
+            "Test HSS": hss_score})
+if __name__ == "__main__":
+    parser = argparse.ArgumentParser(description="Training Script")
+
+    # Define arguments
+    parser.add_argument('--lr', type=float, default=0.001, help='Learning rate')
+    parser.add_argument('--batch_size', type=int, default=16, help='Batch size')
+    parser.add_argument('--num_epochs', type=int, default=2, help='Number of epochs')
+
+    # Parse arguments
+    args = parser.parse_args()
+
+    # Call the main function with parsed arguments
+    main(args)

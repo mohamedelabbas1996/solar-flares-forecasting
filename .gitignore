@@ -2,6 +2,8 @@ solar-flares-forecasting/
 *.pyc
 commands.md
 wandb/
-data/SHARP/
+data/old_SHARP+summary_parameters/
 data/SMARP/
+data/SHARP/
+checkpoints
 data/tarp_harp_to_noaa/
