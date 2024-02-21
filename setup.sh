@@ -5,7 +5,7 @@ gdown 1j9evvHkXrc-e-hgdw7LuOS_Mt7QSMP1v -O data/SHARP
 
 echo "Downloading magnetograms ..."
 mkdir data/SHARP/magnetograms
-gdown 1SvKi9Ife0Q5K2Bro0K3vtG0xGWcWZ3S0 -O data/SHARP/magnetograms
+gdown 1OAwMPfsf5VCH6R-17RxQZHyFceqByLjS -O data/SHARP/magnetograms
 
 mkdir checkpoints
 # mkdir data/SHARP/raw_summary_parameters
