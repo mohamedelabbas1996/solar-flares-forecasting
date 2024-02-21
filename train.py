@@ -20,7 +20,6 @@ def train(model, optimizer, train_loader, validation_loader, num_epochs,criterio
         all_preds = []
         all_targets = []
         for batch_idx, (data, target) in enumerate(train_loader):
-            print(epoch, batch_idx)
             data = data.unsqueeze(1)  # Assuming your model needs this shape
             target = target.unsqueeze(1).float()  # Adjust for your model's expected input
             data, target, model = data.to(device), target.to(device), model.to(device)
@@ -111,7 +110,7 @@ def main(args):
     
 
     # active region based split 
-    data_df = pd.read_csv("data/SHARP/sharp_dataset_20000.csv")[:1000]
+    data_df = pd.read_csv("data/SHARP/sharp_dataset_20000.csv")
    
     unique_regions = data_df['harp_no'].unique()
 
