@@ -105,6 +105,8 @@ def validate_model(model, validation_loader, device):
     return accuracy, precision, recall, validation_loss, cm, hss_score, tss_score
 
 def main(args):
+    if args.debug:
+        print("running the training script")
     # Initialize Weights & Biases
     #wandb.init(project="Solar Flares Forecasting", entity="hack1996man")
     wandb.init(mode="offline")
@@ -195,6 +197,7 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Training Script")
 
     # Define arguments
+    parser.add_argument('--debug', action='store_true', help='Debug enabled')
     parser.add_argument('--lr', type=float, default=0.001, help='Learning rate')
     parser.add_argument('--batch_size', type=int, default=16, help='Batch size')
     parser.add_argument('--num_epochs', type=int, default=2, help='Number of epochs')
