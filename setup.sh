@@ -1,12 +1,12 @@
 mkdir data
 echo "Downloading csv files ..."
 mkdir data/SHARP
-gdown 1j9evvHkXrc-e-hgdw7LuOS_Mt7QSMP1v -O data/SHARP
+gdown 1j9evvHkXrc-e-hgdw7LuOS_Mt7QSMP1v -O data/SHARP/sharp_dataset_20000.csv
 
 echo "Downloading magnetograms ..."
 mkdir data/SHARP/magnetograms
-gdown 1OAwMPfsf5VCH6R-17RxQZHyFceqByLjS -O data/SHARP/magnetograms
-
+gdown 1OAwMPfsf5VCH6R-17RxQZHyFceqByLjS -O data/SHARP/magnetograms/sharp_data.zip
+unzip data/SHARP/magnetograms/sharp_data.zip -d data/SHARP/magnetograms
 mkdir checkpoints
 # mkdir data/SHARP/raw_summary_parameters
 # mkdir data/SHARP/preprocessed_summary_parameters
