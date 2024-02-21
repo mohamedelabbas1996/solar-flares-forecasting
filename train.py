@@ -39,13 +39,13 @@ def train(model, optimizer, train_loader, validation_loader, num_epochs,criterio
                 wandb.log({"validation_loss": validation_loss})
                  # Log metrics
                 wandb.log({
-            "accuracy": accuracy,
-            " tn, fp, fn, tp":str(cm.ravel()),
-            "confusion_matrix" : cm,
-            "precision": precision,
-            "recall": recall,
-            "TSS": tss_score,
-            "HSS": hss_score,
+            "validation accuracy": accuracy,
+            "validation accuracy tn, fp, fn, tp":str(cm.ravel()),
+            "validation accuracy confusion_matrix" : cm,
+            "validation accuracy precision": precision,
+            "validation accuracy recall": recall,
+            "validation accuracy TSS": tss_score,
+            "validation accuracy HSS": hss_score,
         })
         
         
