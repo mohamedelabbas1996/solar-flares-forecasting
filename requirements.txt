@@ -50,7 +50,7 @@ GitPython==3.1.40
 google-auth==2.27.0
 google-auth-oauthlib==1.2.0
 google-pasta==0.2.0
-grpcio==1.60.0
+grpcio==1.41.1+computecanada
 h5py==3.10.0
 huggingface-hub==0.19.4
 icecream==2.1.3
