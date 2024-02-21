@@ -40,12 +40,12 @@ def train(model, optimizer, train_loader, validation_loader, num_epochs,criterio
                  # Log metrics
                 wandb.log({
             "validation accuracy": accuracy,
-            "validation accuracy tn, fp, fn, tp":str(cm.ravel()),
-            "validation accuracy confusion_matrix" : cm,
-            "validation accuracy precision": precision,
-            "validation accuracy recall": recall,
-            "validation accuracy TSS": tss_score,
-            "validation accuracy HSS": hss_score,
+            "validation  tn, fp, fn, tp":str(cm.ravel()),
+            "validation confusion_matrix" : cm,
+            "validation precision": precision,
+            "validation recall": recall,
+            "validation TSS": tss_score,
+            "validation HSS": hss_score,
         })
         
         
@@ -73,7 +73,7 @@ def calculate_tss(true_positives, false_positives, true_negatives, false_negativ
     TSS = (true_positives / (true_positives + false_negatives)) - (false_positives / (false_positives + true_negatives))
     return TSS
 
-def validate_model(model, validation_loader, device):
+def validate_model(model, validation_loader, device, is_test=False):
     model.eval()
     val_running_loss = 0.0
     all_preds = []
@@ -91,7 +91,12 @@ def validate_model(model, validation_loader, device):
             preds = torch.round(torch.sigmoid(output))
             all_preds.extend(preds.view(-1).cpu().numpy())
             all_targets.extend(target.view(-1).cpu().numpy())
-
+    class_names = ['Strong', 'Quiet']        
+    wandb.log({f"{'test' if is_test else 'validation'} confusion_matrix": wandb.plot.confusion_matrix(
+    probs=None,
+    y_true=all_targets,
+    preds=all_preds,
+    class_names=class_names)})
     accuracy = accuracy_score(all_targets, all_preds)
     precision = precision_score(all_targets, all_preds)
     recall = recall_score(all_targets, all_preds)
@@ -157,8 +162,6 @@ def main(args):
     optimizer_name = "Adam",
     batch_size =  args.batch_size,
     num_epochs = args.num_epochs,
-    train_dataset_file_name = "data/SHARP/train_df.csv",
-    validation_dataset_file_name ="data/SHARP/test_df.csv",
     loss_function = "F.binary_cross_entropy_with_logits"
 )
     wandb.config.update(config)
@@ -183,8 +186,11 @@ def main(args):
     
     device = "cuda" if torch.cuda.is_available() else 'cpu'
     train(model, optimizer, train_loader, valid_loader, args.num_epochs, criterion, device)
-    accuracy, precision, recall, validation_loss, cm, hss_score, tss_score = validate_model(model, test_loader, device)
+    accuracy, precision, recall, validation_loss, cm, hss_score, tss_score = validate_model(model, test_loader, device, is_test=True)
+    
 
+    # Log the confusion matrix
+   
     wandb.log({
             "Test accuracy": accuracy,
             "Test tn, fp, fn, tp":str(cm.ravel()),
