@@ -118,7 +118,7 @@ def main(args):
     
 
     # active region based split 
-    data_df = pd.read_csv("data/SHARP/sharp_magnetograms_labelled_balanced_w_magnetogram_exists_contains_nan_nan_removed.csv")
+    data_df = pd.read_csv("data/SHARP/sharp_magnetograms_labelled_balanced_w_magnetogram_exists_contains_nan_nan_removed_rebalanced.csv")
    
     unique_regions = data_df['harp_no'].unique()
 
@@ -146,9 +146,9 @@ def main(args):
     test_df = data_df[test_mask]
 
     # save splitted data
-    train_df.to_csv("data/SHARP/train_df_v1.csv")
-    valid_df.to_csv("data/SHARP/valid_df_v1.csv")
-    test_df.to_csv("data/SHARP/test_df_v1.csv")
+    train_df.to_csv("data/SHARP/train_df_v2.csv")
+    valid_df.to_csv("data/SHARP/valid_df_v2.csv")
+    test_df.to_csv("data/SHARP/test_df_v2.csv")
 
 
 
@@ -166,9 +166,9 @@ def main(args):
 )
     wandb.config.update(config)
     wandb.config.update({
-        "train_data":"data/SHARP/train_df_v1.csv",
-        "validation_data":"data/SHARP/valid_df_v1.csv",
-        "test_data":"data/SHARP/test_df_v1.csv"
+        "train_data":"data/SHARP/train_df_v2.csv",
+        "validation_data":"data/SHARP/valid_df_v2.csv",
+        "test_data":"data/SHARP/test_df_v2.csv"
     })
     # initilize model, optimizer, loss, datasets, train,test loaders
     train_dataset = MagnetogramDataset(train_df, magnetograms_dir="data/SHARP/sharp_data_all_magnetograms")
