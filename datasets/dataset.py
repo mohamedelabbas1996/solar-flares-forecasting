@@ -54,6 +54,7 @@ class MagnetogramDataset(Dataset):
             dataframe (DataFrame): DataFrame containing the paths to magnetograms and labels.
             transform (callable, optional): Optional transform to be applied on a sample.
         """
+        self.dataframe = dataframe
         self.magnetograms_dir = magnetograms_dir
 
     def __len__(self):

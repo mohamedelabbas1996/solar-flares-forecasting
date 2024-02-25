@@ -11,22 +11,28 @@ from torch.utils.data import DataLoader
 from datasets.dataset import MagnetogramDataset
 import torch.nn.functional as F
 import datetime
+from tqdm import tqdm
 
-# Assuming `model` and `optimizer` are defined and initialized according to the hyperparameters
-def train(model, optimizer, train_loader, validation_loader, num_epochs,criterion, device):
-   
+
+def train(model, optimizer, train_loader, validation_loader, num_epochs, criterion, device, interactive=False):
     model.train()
     for epoch in range(num_epochs):
+        # Use tqdm for the progress bar if debug is True, else iterate normally
+        iterable = tqdm(train_loader, desc=f"Epoch {epoch+1}/{num_epochs}") if interactive else train_loader
+        
         all_preds = []
         all_targets = []
-        for batch_idx, (data, target) in enumerate(train_loader):
+        for batch_idx, (data, target) in enumerate(iterable):
             data = data.unsqueeze(1)  # Assuming your model needs this shape
             target = target.unsqueeze(1).float()  # Adjust for your model's expected input
             data, target, model = data.to(device), target.to(device), model.to(device)
             optimizer.zero_grad()
             output = model(data)
             loss = criterion(output, target)
+            
+            # Log training loss with wandb
             wandb.log({"train_loss": loss.item()})
+            
             loss.backward()
             optimizer.step()
             
@@ -34,34 +40,28 @@ def train(model, optimizer, train_loader, validation_loader, num_epochs,criterio
             all_preds.extend(preds.view(-1).cpu().detach().numpy())
             all_targets.extend(target.view(-1).cpu().detach().numpy())
             
-            if (batch_idx) % 50== 0:
+            if (batch_idx) % 50 == 0:
                 accuracy, precision, recall, validation_loss, cm, hss_score, tss_score = validate_model(model, validation_loader, device)
-                wandb.log({"validation_loss": validation_loss})
-                 # Log metrics
+                
+                # Log validation metrics with wandb
                 wandb.log({
-            "validation accuracy": accuracy,
-            "validation  tn, fp, fn, tp":str(cm.ravel()),
-            "validation confusion_matrix" : cm,
-            "validation precision": precision,
-            "validation recall": recall,
-            "validation TSS": tss_score,
-            "validation HSS": hss_score,
-        })
-        
-        
-       
+                    "validation_loss": validation_loss,
+                    "validation accuracy": accuracy,
+                    "validation  tn, fp, fn, tp": str(cm.ravel()),
+                    "validation confusion_matrix": cm,
+                    "validation precision": precision,
+                    "validation recall": recall,
+                    "validation TSS": tss_score,
+                    "validation HSS": hss_score,
+                })
         
         # Save model checkpoint
-        datetime_str = datetime.datetime.now().strftime("%Y-%m-%d_%H-%M-%S")        
+        datetime_str = datetime.datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
         checkpoint_path = f"checkpoints/model_checkpoint_epoch_{wandb.run.name}_{epoch}_{datetime_str}.pth"
         torch.save(model.state_dict(), checkpoint_path)
+        
+        # Save the checkpoint with wandb
         wandb.save(checkpoint_path)
-    
-    # Log the final model as an artifact
-    model_artifact = wandb.Artifact('model_weights', type='model')
-    model_artifact.add_file(f'checkpoints/model_checkpoint_epoch_{wandb.run.name}_{epoch}_{datetime_str}.pth')
-    wandb.log_artifact(model_artifact)
-
 
 def calculate_hss(true_positives, false_positives, true_negatives, false_negatives):
     E = ((true_positives + false_negatives) * (true_positives + false_positives) + 
@@ -185,7 +185,7 @@ def main(args):
 )
     
     device = "cuda" if torch.cuda.is_available() else 'cpu'
-    train(model, optimizer, train_loader, valid_loader, args.num_epochs, criterion, device)
+    train(model, optimizer, train_loader, valid_loader, args.num_epochs, criterion, device, interactive=args.debug)
     accuracy, precision, recall, validation_loss, cm, hss_score, tss_score = validate_model(model, test_loader, device, is_test=True)
     
 
