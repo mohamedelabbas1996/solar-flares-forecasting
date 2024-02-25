@@ -91,7 +91,7 @@ def validate_model(model, validation_loader, device, is_test=False):
             preds = torch.round(torch.sigmoid(output))
             all_preds.extend(preds.view(-1).cpu().numpy())
             all_targets.extend(target.view(-1).cpu().numpy())
-    class_names = ['Strong', 'Quiet']        
+    class_names = ['Quiet', 'Strong']        
     wandb.log({f"{'test' if is_test else 'validation'} confusion_matrix": wandb.plot.confusion_matrix(
     probs=None,
     y_true=all_targets,
@@ -118,7 +118,7 @@ def main(args):
     
 
     # active region based split 
-    data_df = pd.read_csv("data/SHARP/sharp_dataset_20000.csv")
+    data_df = pd.read_csv("data/SHARP/sharp_magnetograms_labelled_balanced_w_magnetogram_exists_contains_nan_nan_removed.csv")
    
     unique_regions = data_df['harp_no'].unique()
 
@@ -146,9 +146,9 @@ def main(args):
     test_df = data_df[test_mask]
 
     # save splitted data
-    train_df.to_csv("data/SHARP/train_df.csv")
-    valid_df.to_csv("data/SHARP/valid_df.csv")
-    test_df.to_csv("data/SHARP/test_df.csv")
+    train_df.to_csv("data/SHARP/train_df_v1.csv")
+    valid_df.to_csv("data/SHARP/valid_df_v1.csv")
+    test_df.to_csv("data/SHARP/test_df_v1.csv")
 
 
 
@@ -166,22 +166,22 @@ def main(args):
 )
     wandb.config.update(config)
     wandb.config.update({
-        "train_data":"data/SHARP/train_df.csv",
-        "validation_data":"data/SHARP/valid_df.csv",
-        "test_data":"data/SHARP/test_df.csv"
+        "train_data":"data/SHARP/train_df_v1.csv",
+        "validation_data":"data/SHARP/valid_df_v1.csv",
+        "test_data":"data/SHARP/test_df_v1.csv"
     })
     # initilize model, optimizer, loss, datasets, train,test loaders
-    train_dataset = MagnetogramDataset(train_df, magnetograms_dir="data/SHARP/magnetograms/content/drive/MyDrive/sharp_data")
+    train_dataset = MagnetogramDataset(train_df, magnetograms_dir="data/SHARP/sharp_data_all_magnetograms")
     train_loader = DataLoader(train_dataset, batch_size=args.batch_size, shuffle=True)
 
-    valid_dataset = MagnetogramDataset(valid_df, magnetograms_dir="data/SHARP/magnetograms/content/drive/MyDrive/sharp_data")
+    valid_dataset = MagnetogramDataset(valid_df, magnetograms_dir="data/SHARP/sharp_data_all_magnetograms")
     valid_loader = DataLoader(
     valid_dataset, batch_size=args.batch_size, shuffle=True, drop_last=True
 )
-    test_dataset = MagnetogramDataset(test_df, magnetograms_dir="data/SHARP/magnetograms/content/drive/MyDrive/sharp_data")
+    test_dataset = MagnetogramDataset(test_df, magnetograms_dir="data/SHARP/sharp_data_all_magnetograms")
 
     test_loader = DataLoader(
-    test_dataset, batch_size=args.batch_size, shuffle=True, drop_last=True
+    test_dataset, batch_size=args.batch_size, shuffle=True, drscsop_last=True
 )
     
     device = "cuda" if torch.cuda.is_available() else 'cpu'

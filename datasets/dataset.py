@@ -62,10 +62,11 @@ class MagnetogramDataset(Dataset):
 
     def __getitem__(self, idx):
         magnetogram_path = self.dataframe.iloc[idx]['magnetogram']
+        magnetogram_region_no = self.dataframe.iloc[idx]['harp_no']
         label = self.dataframe.iloc[idx]['label']
         
         # Load the magnetogram; assuming it's stored as a NumPy array
-        magnetogram = np.load(self.magnetograms_dir+"/"+magnetogram_path[1:].replace("/","_")+".npy")
+        magnetogram = np.load(self.magnetograms_dir+f"/{magnetogram_region_no}/"+magnetogram_path[1:].replace("/","_")+".npy")
         
         # Convert magnetogram and label to PyTorch tensors
         magnetogram = torch.from_numpy(magnetogram).float()
