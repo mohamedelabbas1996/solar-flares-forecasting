@@ -181,7 +181,7 @@ def main(args):
     test_dataset = MagnetogramDataset(test_df, magnetograms_dir="data/SHARP/sharp_data_all_magnetograms")
 
     test_loader = DataLoader(
-    test_dataset, batch_size=args.batch_size, shuffle=True, drscsop_last=True
+    test_dataset, batch_size=args.batch_size, shuffle=True, drop_last=True
 )
     
     device = "cuda" if torch.cuda.is_available() else 'cpu'
