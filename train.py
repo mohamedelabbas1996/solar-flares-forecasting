@@ -15,14 +15,17 @@ from tqdm import tqdm
 from loss import FocalBCELoss
 
 def train(model, optimizer, train_loader, validation_loader, num_epochs, criterion, device, interactive=False):
-    model.train()
+   
+    best_val_tss = float('-inf')
+    patience_counter = 0
+    patience = 3
     for epoch in range(num_epochs):
         # Use tqdm for the progress bar if debug is True, else iterate normally
         iterable = tqdm(train_loader, desc=f"Epoch {epoch+1}/{num_epochs}") if interactive else train_loader
-        
         all_preds = []
         all_targets = []
         for batch_idx, (data, target) in enumerate(iterable):
+            model.train()
             data = data.unsqueeze(1)  # Assuming your model needs this shape
             target = target.unsqueeze(1).float()  # Adjust for your model's expected input
             data, target, model = data.to(device), target.to(device), model.to(device)
@@ -54,6 +57,22 @@ def train(model, optimizer, train_loader, validation_loader, num_epochs, criteri
                     "validation TSS": tss_score,
                     "validation HSS": hss_score,
                 })
+                # Check for improvement in validation TSS
+                if tss_score > best_val_tss:
+                    best_val_tss = tss_score
+                    patience_counter = 0  # Reset patience since we found a better model
+                    
+                    # Save the best model
+                    datetime_str = datetime.datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
+                    best_checkpoint_path = f"checkpoints/best_model_checkpoint_{wandb.run.name}_{epoch}_{datetime_str}.pth"
+                    torch.save(model.state_dict(), best_checkpoint_path)
+                    wandb.save(best_checkpoint_path)
+                else:
+                    patience_counter += 1
+                    
+                    if patience_counter >= patience:
+                        print(f"Stopping early at epoch {epoch+1} due to no improvement in validation TSS.")
+                        return  # Early stopping trigger
         
         # Save model checkpoint
         datetime_str = datetime.datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
@@ -153,8 +172,8 @@ def main(args):
 
 
     model = CNN()
-    #criterion = F.binary_cross_entropy_with_logits
-    criterion = FocalBCELoss()
+    criterion = F.binary_cross_entropy_with_logits
+    #criterion = FocalBCELoss()
     optimizer = Adam(model.parameters(), lr=args.lr)
 
     config = dict(
@@ -163,7 +182,7 @@ def main(args):
     optimizer_name = "Adam",
     batch_size =  args.batch_size,
     num_epochs = args.num_epochs,
-    loss_function = "FocalBCELoss()"
+    loss_function = "F.binary_cross_entropy_with_logits"
 )
     wandb.config.update(config)
     wandb.config.update({
