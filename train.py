@@ -18,7 +18,7 @@ def train(model, optimizer, train_loader, validation_loader, num_epochs, criteri
    
     best_val_tss = float('-inf')
     patience_counter = 0
-    patience = 3
+    patience = 20
     for epoch in range(num_epochs):
         # Use tqdm for the progress bar if debug is True, else iterate normally
         iterable = tqdm(train_loader, desc=f"Epoch {epoch+1}/{num_epochs}") if interactive else train_loader
@@ -64,7 +64,7 @@ def train(model, optimizer, train_loader, validation_loader, num_epochs, criteri
                     
                     # Save the best model
                     datetime_str = datetime.datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
-                    best_checkpoint_path = f"checkpoints/best_model_checkpoint_{wandb.run.name}_{epoch}_{datetime_str}.pth"
+                    best_checkpoint_path = f"checkpoints/best_model_checkpoint_{wandb.run.name}.pth"
                     torch.save(model.state_dict(), best_checkpoint_path)
                     wandb.save(best_checkpoint_path)
                 else:
@@ -206,6 +206,8 @@ def main(args):
     
     device = "cuda" if torch.cuda.is_available() else 'cpu'
     train(model, optimizer, train_loader, valid_loader, args.num_epochs, criterion, device, interactive=args.debug)
+    best_checkpoint = torch.load(f'checkpoints/best_model_checkpoint_{wandb.run.name}.pth')
+    model.load_state_dict(best_checkpoint[['model_state_dict']])
     accuracy, precision, recall, validation_loss, cm, hss_score, tss_score = validate_model(model, test_loader, device, is_test=True)
     
 
