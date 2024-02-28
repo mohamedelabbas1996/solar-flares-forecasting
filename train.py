@@ -207,7 +207,7 @@ def main(args):
     device = "cuda" if torch.cuda.is_available() else 'cpu'
     #train(model, optimizer, train_loader, valid_loader, args.num_epochs, criterion, device, interactive=args.debug)
     best_checkpoint = torch.load(f'checkpoints/best_model_checkpoint_{wandb.run.name}.pth')
-    model.load_state_dict(best_checkpoint['model_state_dict'])
+    model.load_state_dict(best_checkpoint)
     accuracy, precision, recall, validation_loss, cm, hss_score, tss_score = validate_model(model, test_loader, device, is_test=True)
     
 
