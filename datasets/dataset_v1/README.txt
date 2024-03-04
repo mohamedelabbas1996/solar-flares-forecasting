@@ -1,0 +1,1 @@
+magnetograms normalized
