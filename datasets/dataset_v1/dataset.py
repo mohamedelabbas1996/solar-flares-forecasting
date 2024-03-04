@@ -61,7 +61,7 @@ class MagnetogramDataset(Dataset):
         V_avg = dataframe['variance'].mean()
         
         # Compute the variance among the means and scale by the number of observations
-        V_means = dataframe['mean'].var() * n
+        V_means = dataframe['mean'].var() * 128*128
         
         # Combine V_avg and V_means to get the overall variance
         self.overall_variance = V_avg + V_means
