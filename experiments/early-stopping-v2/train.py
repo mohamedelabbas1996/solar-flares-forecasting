@@ -1,6 +1,6 @@
 import sys
 sys.path.append("models/cnn")
-sys.path.append("datasets")
+sys.path.append("datasets/dataset_v1")
 sys.path.append("loss")
 import wandb
 import torch
@@ -141,7 +141,7 @@ def main(args):
     
 
     # active region based split 
-    data_df = pd.read_csv("data/SHARP/sharp_magnetograms_labelled_balanced_w_magnetogram_exists_contains_nan_nan_removed.csv")
+    data_df = pd.read_csv("data/SHARP/sharp_magnetograms_labelled_balanced_w_magnetogram_exists_contains_nan_nan_removed_rebalanced_w_mean_variance.csv")
    
     unique_regions = data_df['harp_no'].unique()
 
