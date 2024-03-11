@@ -1,6 +1,6 @@
 import sys
 sys.path.append("models/cnn")
-sys.path.append("datasets")
+sys.path.append("datasets/sharp_sun_et_al")
 sys.path.append("loss")
 import wandb
 import torch
