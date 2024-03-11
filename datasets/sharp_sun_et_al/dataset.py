@@ -67,7 +67,7 @@ class MagnetogramDataset(Dataset):
         
         # Load the magnetogram; assuming it's stored as a NumPy array
         for directory in self.magnetograms_dirs:
-            magnetogram_path = os.path.join(directory,magnetogram_region_no, magnetogram_filename)
+            magnetogram_path = os.path.join(directory,str(magnetogram_region_no), magnetogram_filename)
             if os.path.exists(magnetogram_path):
                  magnetogram = np.load(magnetogram_path)
         
