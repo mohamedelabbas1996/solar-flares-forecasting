@@ -73,8 +73,7 @@ class MagnetogramDataset(Dataset):
                  magnetogram = np.load(magnetogram_path1)
             elif os.path.exists(magnetogram_path2):
                  magnetogram = np.load(magnetogram_path2)     
-        else:
-            raise FileNotFoundError(f"{magnetogram_filename} {magnetogram_region_no} doesnot exist")     
+             
         
         # Convert magnetogram and label to PyTorch tensors
         magnetogram = torch.from_numpy(magnetogram).float()
