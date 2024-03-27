@@ -67,9 +67,14 @@ class MagnetogramDataset(Dataset):
         
         # Load the magnetogram; assuming it's stored as a NumPy array
         for directory in self.magnetograms_dirs:
-            magnetogram_path = os.path.join(directory,str(magnetogram_region_no), magnetogram_filename)
-            if os.path.exists(magnetogram_path):
-                 magnetogram = np.load(magnetogram_path)
+            magnetogram_path1 = os.path.join(directory,str(magnetogram_region_no), magnetogram_filename)
+            magnetogram_path2 = os.path.join(directory,str(magnetogram_region_no),str(magnetogram_region_no), magnetogram_filename)
+            if os.path.exists(magnetogram_path1):
+                 magnetogram = np.load(magnetogram_path1)
+            elif os.path.exists(magnetogram_path2):
+                 magnetogram = np.load(magnetogram_path2)     
+            else:
+                raise FileNotFoundError(f"{magnetogram_filename} {magnetogram_region_no} doesnot exist")     
         
         # Convert magnetogram and label to PyTorch tensors
         magnetogram = torch.from_numpy(magnetogram).float()
