@@ -71,8 +71,10 @@ class MagnetogramDataset(Dataset):
             magnetogram_path2 = os.path.join(directory,str(magnetogram_region_no),str(magnetogram_region_no), magnetogram_filename)
             if os.path.exists(magnetogram_path1):
                  magnetogram = np.load(magnetogram_path1)
+                 break
             elif os.path.exists(magnetogram_path2):
-                 magnetogram = np.load(magnetogram_path2)     
+                 magnetogram = np.load(magnetogram_path2)   
+                 break  
              
         
         # Convert magnetogram and label to PyTorch tensors
