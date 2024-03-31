@@ -22,7 +22,7 @@ def train(model, optimizer, train_loader, validation_loader, num_epochs, criteri
    
     best_val_tss = float('-inf')
     patience_counter = 0
-    patience = 20
+    patience = 10
     for epoch in range(num_epochs):
         # Use tqdm for the progress bar if debug is True, else iterate normally
         iterable = tqdm(train_loader, desc=f"Epoch {epoch+1}/{num_epochs}") if interactive else train_loader
@@ -138,9 +138,9 @@ def main(args):
     # Initialize Weights & Biases
     #wandb.init(project="Solar Flares Forecasting", entity="hack1996man")
     wandb.init(mode="offline")
-    train_df= pd.read_csv("datasets/sharp_sun_et_al/v5/sharp_sun_et_al_df_train_balanced_v5.csv")
-    valid_df= pd.read_csv("datasets/sharp_sun_et_al/v5/sharp_sun_et_al_df_val_balanced_v5.csv")
-    test_df= pd.read_csv("datasets/sharp_sun_et_al/v5/sharp_sun_et_al_df_test_balanced_v5.csv")
+    train_df= pd.read_csv("datasets/sharp_sun_et_al/v1/sharp_sun_et_al_df_train_balanced.csv")
+    valid_df= pd.read_csv("datasets/sharp_sun_et_al/v1/sharp_sun_et_al_df_val_balanced.csv")
+    test_df= pd.read_csv("datasets/sharp_sun_et_al/v1/sharp_sun_et_al_df_test_balanced.csv")
 
 
 
@@ -159,9 +159,9 @@ def main(args):
 )
     wandb.config.update(config)
     wandb.config.update({
-        "train_data":"datasets/sharp_sun_et_al/v5/sharp_sun_et_al_df_train_balanced_v5.csv",
-        "validation_data":"datasets/sharp_sun_et_al/v5/sharp_sun_et_al_df_val_balanced_v5.csv",
-        "test_data":"datasets/sharp_sun_et_al/v5/sharp_sun_et_al_df_test_balanced_v5.csv"
+        "train_data":"datasets/sharp_sun_et_al/v1/sharp_sun_et_al_df_train_balanced.csv",
+        "validation_data":"datasets/sharp_sun_et_al/v1/sharp_sun_et_al_df_val_balanced.csv",
+        "test_data":"datasets/sharp_sun_et_al/v1/sharp_sun_et_al_df_test_balanced.csv"
     })
     # initilize model, optimizer, loss, datasets, train,test loaders
     train_dataset = MagnetogramDataset(train_df, magnetograms_dirs=[ "data/SHARP/sharp_magnetograms_sun_et_al_decompressed/sharp_magnetograms_sun_et_al_compressed_1","data/SHARP/sharp_data_all_magnetograms"])
