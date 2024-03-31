@@ -138,9 +138,9 @@ def main(args):
     # Initialize Weights & Biases
     #wandb.init(project="Solar Flares Forecasting", entity="hack1996man")
     wandb.init(mode="offline")
-    train_df= pd.read_csv("datasets/sharp_sun_et_al/v1/sharp_sun_et_al_df_train_balanced.csv")
-    valid_df= pd.read_csv("datasets/sharp_sun_et_al/v1/sharp_sun_et_al_df_val_balanced.csv")
-    test_df= pd.read_csv("datasets/sharp_sun_et_al/v1/sharp_sun_et_al_df_test_balanced.csv")
+    train_df= pd.read_csv("datasets/sharp_sun_et_al/v2/sharp_sun_et_al_df_train_balanced_v2.csv")
+    valid_df= pd.read_csv("datasets/sharp_sun_et_al/v2/sharp_sun_et_al_df_val_balanced_v2.csv")
+    test_df= pd.read_csv("datasets/sharp_sun_et_al/v2/sharp_sun_et_al_df_test_balanced_v2.csv")
 
 
 
@@ -159,9 +159,9 @@ def main(args):
 )
     wandb.config.update(config)
     wandb.config.update({
-        "train_data":"datasets/sharp_sun_et_al/v1/sharp_sun_et_al_df_train_balanced.csv",
-        "validation_data":"datasets/sharp_sun_et_al/v1/sharp_sun_et_al_df_val_balanced.csv",
-        "test_data":"datasets/sharp_sun_et_al/v1/sharp_sun_et_al_df_test_balanced.csv"
+        "train_data":"datasets/sharp_sun_et_al/v2/sharp_sun_et_al_df_train_balanced_v2.csv",
+        "validation_data":"datasets/sharp_sun_et_al/v2/sharp_sun_et_al_df_val_balanced_v2.csv",
+        "test_data":"datasets/sharp_sun_et_al/v2/sharp_sun_et_al_df_test_balanced_v2.csv"
     })
     # initilize model, optimizer, loss, datasets, train,test loaders
     train_dataset = MagnetogramDataset(train_df, magnetograms_dirs=[ "data/SHARP/sharp_magnetograms_sun_et_al_decompressed/sharp_magnetograms_sun_et_al_compressed_1","data/SHARP/sharp_data_all_magnetograms"])
