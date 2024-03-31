@@ -164,14 +164,14 @@ def main(args):
         "test_data":"datasets/sharp_sun_et_al/sharp_sun_et_al_df_test_balanced_v2.csv"
     })
     # initilize model, optimizer, loss, datasets, train,test loaders
-    train_dataset = MagnetogramDataset(train_df, magnetograms_dirs=["data/SHARP/sharp_data_all_magnetograms", "data/SHARP/sharp_magnetograms_sun_et_al_decompressed/sharp_magnetograms_sun_et_al_compressed_1"])
+    train_dataset = MagnetogramDataset(train_df, magnetograms_dirs=[ "data/SHARP/sharp_magnetograms_sun_et_al_decompressed/sharp_magnetograms_sun_et_al_compressed_1","data/SHARP/sharp_data_all_magnetograms"])
     train_loader = DataLoader(train_dataset, batch_size=args.batch_size, shuffle=True)
 
-    valid_dataset = MagnetogramDataset(valid_df, magnetograms_dirs=["data/SHARP/sharp_data_all_magnetograms", "data/SHARP/sharp_magnetograms_sun_et_al_decompressed/sharp_magnetograms_sun_et_al_compressed_1"])
+    valid_dataset = MagnetogramDataset(valid_df, magnetograms_dirs=[ "data/SHARP/sharp_magnetograms_sun_et_al_decompressed/sharp_magnetograms_sun_et_al_compressed_1","data/SHARP/sharp_data_all_magnetograms"])
     valid_loader = DataLoader(
     valid_dataset, batch_size=args.batch_size, shuffle=True, drop_last=True
 )
-    test_dataset = MagnetogramDataset(test_df, magnetograms_dirs=["data/SHARP/sharp_data_all_magnetograms", "data/SHARP/sharp_magnetograms_sun_et_al_decompressed/sharp_magnetograms_sun_et_al_compressed_1"])
+    test_dataset = MagnetogramDataset(test_df, magnetograms_dirs=["data/SHARP/sharp_magnetograms_sun_et_al_decompressed/sharp_magnetograms_sun_et_al_compressed_1","data/SHARP/sharp_data_all_magnetograms"])
 
     test_loader = DataLoader(
     test_dataset, batch_size=args.batch_size, shuffle=True, drop_last=True
