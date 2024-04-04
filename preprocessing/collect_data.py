@@ -11,6 +11,9 @@ from utils import ACTIVE_REGIONS_WITH_POSITIVE_FLAREING_EVENTS
 import traceback
 import multiprocessing
 import time
+import random
+import torch
+import torchvision.transforms as T
 
 SHARP_SERIES = "hmi.sharp_cea_720s"
 SMARP_SERIES = "mdi.smarp_cea_96m"
@@ -42,6 +45,33 @@ def retrieve_magnetogram(url):
             time.sleep(2)
 
 
+def resize(magnetogram):
+  transform = T.Resize((128, 128),antialias=True)
+  return transform(torch.from_numpy(magnetogram).unsqueeze(0)).reshape(128,128).numpy()
+
+def download_magnetogram(url, region_no, root_dir=""):
+        file_name = url[1:].replace("/", "_") + ".npy"
+        attempts = 10
+        file_path = f"{root_dir}/{region_no}/{region_no}/{file_name}"
+        while True:
+
+            try:
+                # Assuming the URL needs to be concatenated with a base URL
+                magnetogram = fits.open("http://jsoc.stanford.edu" + url)[1].data
+                resized_magnetogram = resize(magnetogram)
+                np.save(file_path, resized_magnetogram)
+                #print(f"Downloaded and saved {file_name}")
+                return
+            except Exception as e:
+                #print(e)
+                sleep_time = random.randint(1, 10)
+                time.sleep(sleep_time)
+                attempts -=1
+                if attempts:
+                  continue
+                else:
+                  return
+                
 def retrieve_summary_params(client, ar, dataseries):
     while True:
         try:
