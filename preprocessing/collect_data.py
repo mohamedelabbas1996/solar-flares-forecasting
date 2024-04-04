@@ -61,7 +61,7 @@ def download_magnetogram(url, region_no, root_dir=""):
                 resized_magnetogram = resize(magnetogram)
                 np.save(file_path, resized_magnetogram)
                 m = np.load(file_path)
-                #print(f"Downloaded and saved {file_name}")
+                print(f"Downloaded and saved {file_name}")
                 return
             except Exception as e:
                 print(e)
