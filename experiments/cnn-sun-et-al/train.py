@@ -131,17 +131,21 @@ def validate_model(model, validation_loader, device, is_test=False):
     validation_loss = val_running_loss / len(validation_loader)
     
     return accuracy, precision, recall, validation_loss, cm, hss_score, tss_score
-
+def balance_df(df):
+    positive_samples = df[df['label'] == True]
+    negative_samples = df[df['label'] == False].sample(n=len(positive_samples), replace=False)
+    df = pd.concat([positive_samples, negative_samples]).reset_index()
+    return df
 def main(args):
     if args.debug:
         print("running the training script")
     # Initialize Weights & Biases
     #wandb.init(project="Solar Flares Forecasting", entity="hack1996man")
     wandb.init(mode="offline")
-    train_df= pd.read_csv("datasets/sharp_sun_et_al/v5/sharp_sun_et_al_df_train_balanced_v5.csv")
-    valid_df= pd.read_csv("datasets/sharp_sun_et_al/v5/sharp_sun_et_al_df_val_balanced_v5.csv")
-    test_df= pd.read_csv("datasets/sharp_sun_et_al/v5/sharp_sun_et_al_df_test_balanced_v5.csv")
-
+    # train_df= pd.read_csv("datasets/sharp_sun_et_al/v5/sharp_sun_et_al_df_train_balanced_v5.csv")
+    # valid_df= pd.read_csv("datasets/sharp_sun_et_al/v5/sharp_sun_et_al_df_val_balanced_v5.csv")
+    # test_df= pd.read_csv("datasets/sharp_sun_et_al/v5/sharp_sun_et_al_df_test_balanced_v5.csv")
+    sharp_df = pd.read_csv("datasets/sharp_sun_et_al/sharp_sun_et_al_filtered.csv")
 
 
     model = CNN()
@@ -159,18 +163,12 @@ def main(args):
 )
     wandb.config.update(config)
     wandb.config.update({
-        "train_data":"datasets/sharp_sun_et_al/v5/sharp_sun_et_al_df_train_balanced_v5.csv",
-        "validation_data":"datasets/sharp_sun_et_al/v5/sharp_sun_et_al_df_val_balanced_v5.csv",
-        "test_data":"datasets/sharp_sun_et_al/v5/sharp_sun_et_al_df_test_balanced_v5.csv"
+        "train_data":"datasets/sharp_sun_et_al/sharp_sun_et_al_filtered.csv",
+        
     })
-    # initilize model, optimizer, loss, datasets, train,test loaders
-    train_dataset = MagnetogramDataset(train_df, magnetograms_dirs=[ "data/SHARP/sharp_magnetograms_sun_et_al_decompressed/sharp_magnetograms_sun_et_al_compressed_1","data/SHARP/sharp_data_all_magnetograms"])
-    train_loader = DataLoader(train_dataset, batch_size=args.batch_size, shuffle=True)
-
-    valid_dataset = MagnetogramDataset(valid_df, magnetograms_dirs=[ "data/SHARP/sharp_magnetograms_sun_et_al_decompressed/sharp_magnetograms_sun_et_al_compressed_1","data/SHARP/sharp_data_all_magnetograms"])
-    valid_loader = DataLoader(
-    valid_dataset, batch_size=args.batch_size, shuffle=True, drop_last=True
-)
+    test_df = sharp_df.sample(frac=0.2, replace=False)
+    test_df = balance_df(test_df) 
+   
     test_dataset = MagnetogramDataset(test_df, magnetograms_dirs=["data/SHARP/sharp_magnetograms_sun_et_al_decompressed/sharp_magnetograms_sun_et_al_compressed_1","data/SHARP/sharp_data_all_magnetograms"])
 
     test_loader = DataLoader(
@@ -178,11 +176,37 @@ def main(args):
 )
     
     device = "cuda" if torch.cuda.is_available() else 'cpu'
-    train(model, optimizer, train_loader, valid_loader, args.num_epochs, criterion, device, interactive=args.debug)
-    best_checkpoint = torch.load(f'checkpoints/best_model_checkpoint_{wandb.run.name}.pth')
-    model.load_state_dict(best_checkpoint)
-    accuracy, precision, recall, validation_loss, cm, hss_score, tss_score = validate_model(model, test_loader, device, is_test=True)
+    for i in range(10):
+    # Randomly select 20% of all HARPs for the test set
+        
+    # Exclude test HARPs from the remaining data
+        remaining_harps = sharp_df[~sharp_df['magnetogram'].isin(test_df["magnetogram"])]
+
+    # Randomly select 20% of the remaining HARPs for the validation set
+        val_df = remaining_harps.sample(frac=0.2, replace=False)
+
+    # Exclude validation HARPs from the remaining data to get the training set
+        train_df = remaining_harps[~remaining_harps['magnetogram'].isin(val_df)]
+
+        train_df = balance_df(train_df)
+        val_df = balance_df(val_df)
+        train_dataset = MagnetogramDataset(train_df, magnetograms_dirs=["data/SHARP/sharp_magnetograms_sun_et_al_decompressed/sharp_magnetograms_sun_et_al_compressed_1","data/SHARP/sharp_data_all_magnetograms"])
+
+        train_loader = DataLoader(
+        train_dataset, batch_size=args.batch_size, shuffle=True, drop_last=True
+    )
+        val_dataset = MagnetogramDataset(val_df, magnetograms_dirs=["data/SHARP/sharp_magnetograms_sun_et_al_decompressed/sharp_magnetograms_sun_et_al_compressed_1","data/SHARP/sharp_data_all_magnetograms"])
+
+        valid_loader = DataLoader(
+        val_dataset, batch_size=args.batch_size, shuffle=True, drop_last=True
+    )
     
+
+        train(model, optimizer, train_loader, valid_loader, args.num_epochs, criterion, device, interactive=args.debug)
+        best_checkpoint = torch.load(f'checkpoints/best_model_checkpoint_{wandb.run.name}.pth')
+        model.load_state_dict(best_checkpoint)
+        accuracy, precision, recall, validation_loss, cm, hss_score, tss_score = validate_model(model, test_loader, device, is_test=True)
+        print (f"Run number {i}, TSS score {tss_score} ")
 
     # Log the confusion matrix
    
