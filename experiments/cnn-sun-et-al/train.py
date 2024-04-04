@@ -166,7 +166,19 @@ def main(args):
         "train_data":"datasets/sharp_sun_et_al/sharp_sun_et_al_filtered.csv",
         
     })
-    test_df = sharp_df.sample(frac=0.2, replace=False)
+    unique_regions = sharp_df['region_no'].unique()
+
+# Calculate the number of regions for each split
+    num_test_regions = int(len(unique_regions) * 0.2)
+    num_val_regions = int(len(unique_regions) * 0.2)
+    num_train_regions = len(unique_regions) - num_test_regions - num_val_regions
+
+# Randomly select regions for each split
+    test_regions = np.random.choice(unique_regions, size=num_test_regions, replace=False)
+    
+
+# Split the data based on selected regions
+    test_df = sharp_df[sharp_df['region_no'].isin(test_regions)]
     test_df = balance_df(test_df) 
     test_df.to_csv("datasets/sharp_sun_et_al/sharp_sun_et_al_test.csv")
     test_dataset = MagnetogramDataset(test_df, magnetograms_dirs=["data/SHARP/sharp_magnetograms_sun_et_al_decompressed/sharp_magnetograms_sun_et_al_compressed_1","data/SHARP/sharp_data_all_magnetograms"])
@@ -177,19 +189,15 @@ def main(args):
     
     device = "cuda" if torch.cuda.is_available() else 'cpu'
     for i in range(10):
-    # Randomly select 20% of all HARPs for the test set
-        
-    # Exclude test HARPs from the remaining data
-        remaining_harps = sharp_df[~sharp_df['magnetogram'].isin(test_df["magnetogram"])]
-
-    # Randomly select 20% of the remaining HARPs for the validation set
-        val_df = remaining_harps.sample(frac=0.2, replace=False)
-
-    # Exclude validation HARPs from the remaining data to get the training set
-        train_df = remaining_harps[~remaining_harps['magnetogram'].isin(val_df)]
-
+        remaining_regions = np.setdiff1d(unique_regions, test_regions)
+        val_regions = np.random.choice(remaining_regions, size=num_val_regions, replace=False)
+        train_regions = np.setdiff1d(remaining_regions, val_regions)
+    
+        train_df = sharp_df[sharp_df['region_no'].isin(val_regions)]
         train_df = balance_df(train_df)
+        val_df = sharp_df[sharp_df['region_no'].isin(train_regions)]
         val_df = balance_df(val_df)
+        
         train_dataset = MagnetogramDataset(train_df, magnetograms_dirs=["data/SHARP/sharp_magnetograms_sun_et_al_decompressed/sharp_magnetograms_sun_et_al_compressed_1","data/SHARP/sharp_data_all_magnetograms"])
 
         train_loader = DataLoader(
