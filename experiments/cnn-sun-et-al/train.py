@@ -201,7 +201,8 @@ def main(args):
         val_dataset, batch_size=args.batch_size, shuffle=True, drop_last=True
     )
     
-
+        model = CNN()
+        optimizer = Adam(model.parameters(), lr=args.lr)
         train(model, optimizer, train_loader, valid_loader, args.num_epochs, criterion, device, interactive=args.debug)
         best_checkpoint = torch.load(f'checkpoints/best_model_checkpoint_{wandb.run.name}.pth')
         model.load_state_dict(best_checkpoint)
