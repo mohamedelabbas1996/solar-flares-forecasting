@@ -168,7 +168,7 @@ def main(args):
     })
     test_df = sharp_df.sample(frac=0.2, replace=False)
     test_df = balance_df(test_df) 
-   
+    test_df.to_csv("datasets/sharp_sun_et_al/sharp_sun_et_al_test.csv")
     test_dataset = MagnetogramDataset(test_df, magnetograms_dirs=["data/SHARP/sharp_magnetograms_sun_et_al_decompressed/sharp_magnetograms_sun_et_al_compressed_1","data/SHARP/sharp_data_all_magnetograms"])
 
     test_loader = DataLoader(
