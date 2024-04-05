@@ -11,6 +11,9 @@ import torch
 from icecream import ic
 import os
 
+SHARP_MEAN = -0.2474091108857478
+SHARP_VAR = 7043.963865528345
+
 def read_df_from_pickle(path):
     with open(path, "rb") as f:
         df = pickle.load(f)
@@ -56,6 +59,8 @@ class MagnetogramDataset(Dataset):
         """
         self.dataframe = dataframe.reset_index(drop=True)
         self.magnetograms_dirs = magnetograms_dirs
+       
+    
 
     def __len__(self):
         return len(self.dataframe)
@@ -79,11 +84,13 @@ class MagnetogramDataset(Dataset):
         
         # Convert magnetogram and label to PyTorch tensors
         magnetogram = torch.from_numpy(magnetogram).float()
-       
+        overall_std = np.sqrt(SHARP_VAR)
+        # Normalize the magnetogram
+        normalized_magnetogram = (magnetogram - SHARP_MEAN) / overall_std
         label = torch.tensor(1).long() if label==True  else  torch.tensor(0).long()# Assuming label is an integer class label
         
         
-        return magnetogram, label
+        return normalized_magnetogram, label
 
 
 if __name__ == "__main__":
