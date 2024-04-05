@@ -197,7 +197,7 @@ def main(args):
         train_df = balance_df(train_df)
         val_df = sharp_df[sharp_df['region_no'].isin(train_regions)]
         val_df = balance_df(val_df)
-        
+
         train_dataset = MagnetogramDataset(train_df, magnetograms_dirs=["data/SHARP/sharp_magnetograms_sun_et_al_decompressed/sharp_magnetograms_sun_et_al_compressed_1","data/SHARP/sharp_data_all_magnetograms"])
 
         train_loader = DataLoader(
@@ -215,11 +215,14 @@ def main(args):
         best_checkpoint = torch.load(f'checkpoints/best_model_checkpoint_{wandb.run.name}.pth')
         model.load_state_dict(best_checkpoint)
         accuracy, precision, recall, validation_loss, cm, hss_score, tss_score = validate_model(model, test_loader, device, is_test=True)
-        print (f"Run number {i}, TSS score {tss_score} ")
-
-    # Log the confusion matrix
-   
-    wandb.log({
+        print (f"Run number {i} ")
+        print (f"TSS score {tss_score}")
+        print (f"HSS score {hss_score}")
+        print (f"Accuracy {accuracy}")
+        print (f"Precision {precision}")
+        print (f"Recall {recall}")
+        wandb.log({
+            "Run Number": i,
             "Test accuracy": accuracy,
             "Test tn, fp, fn, tp":str(cm.ravel()),
             "Test confusion_matrix" : cm,
@@ -227,6 +230,10 @@ def main(args):
             "Test recall": recall,
             "Test TSS": tss_score,
             "Test HSS": hss_score})
+
+    # Log the confusion matrix
+   
+    
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Training Script")
 
