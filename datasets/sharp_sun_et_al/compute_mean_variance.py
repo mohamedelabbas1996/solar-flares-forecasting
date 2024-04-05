@@ -7,7 +7,7 @@ sharp_df = pd.read_csv("datasets/sharp_sun_et_al/sharp_sun_et_al_filtered.csv")
 ds = MagnetogramDataset(sharp_df, magnetograms_dirs=["data/SHARP/sharp_magnetograms_sun_et_al_decompressed/sharp_magnetograms_sun_et_al_compressed_1","data/SHARP/sharp_data_all_magnetograms"])
 means = []
 vars = []
-for idx, row in tqdm(range(len(ds))):
+for idx  in tqdm(range(len(ds))):
     magnetogram = ds[idx][0].numpy()
     mean = np.mean(magnetogram)
     var = np.var(magnetogram)
