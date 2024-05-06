@@ -12,7 +12,7 @@ from torch.utils.data import DataLoader
 from dataset import MagnetogramDataset
 import numpy as np
 from tqdm import tqdm
-
+from sklearn.metrics import accuracy_score, precision_score, recall_score, confusion_matrix
 
 def train(netD, netG,optimizerD, optimizerG, num_epochs, dataloader, criterion, device):
     # Lists to keep track of progress
@@ -116,6 +116,53 @@ def balance_df(df):
     df = pd.concat([positive_samples, negative_samples]).reset_index()
     return df
 
+
+def calculate_hss(true_positives, false_positives, true_negatives, false_negatives):
+    E = ((true_positives + false_negatives) * (true_positives + false_positives) + 
+         (false_negatives + true_negatives) * (false_positives + true_negatives)) / (true_positives + true_negatives + false_positives + false_negatives)
+    HSS = (true_positives + true_negatives - E) / (true_positives + true_negatives + false_positives + false_negatives - E)
+    return HSS
+
+def calculate_tss(true_positives, false_positives, true_negatives, false_negatives):
+    TSS = (true_positives / (true_positives + false_negatives)) - (false_positives / (false_positives + true_negatives))
+    return TSS
+
+def validate_model(model, validation_loader, device, is_test=False):
+    model.eval()
+    val_running_loss = 0.0
+    all_preds = []
+    all_targets = []
+
+    with torch.no_grad():
+        for data, target in validation_loader:
+            data = data.unsqueeze(1)  # Assuming your model needs this shape
+            target = target.unsqueeze(1).float()  # Adjust for your model's expected input
+            data, target, model = data.to(device), target.to(device), model.to(device)
+            output = model(data)
+            loss = F.binary_cross_entropy_with_logits(output, target)
+            val_running_loss += loss.item()
+
+            preds = torch.round(torch.sigmoid(output))
+            all_preds.extend(preds.view(-1).cpu().numpy())
+            all_targets.extend(target.view(-1).cpu().numpy())
+    class_names = ['Quiet', 'Strong']        
+    wandb.log({f"{'test' if is_test else 'validation'} confusion_matrix": wandb.plot.confusion_matrix(
+    probs=None,
+    y_true=all_targets,
+    preds=all_preds,
+    class_names=class_names)})
+    accuracy = accuracy_score(all_targets, all_preds)
+    precision = precision_score(all_targets, all_preds)
+    recall = recall_score(all_targets, all_preds)
+    cm = confusion_matrix(all_targets, all_preds)
+    tn, fp, fn, tp = cm.ravel()
+    hss_score = calculate_hss(tp, fp, tn, fn)
+    tss_score = calculate_tss(tp, fp, tn, fn)
+
+    validation_loss = val_running_loss / len(validation_loader)
+    
+    return accuracy, precision, recall, validation_loss, cm, hss_score, tss_score
+
 def main():
     # Learning rate for optimizers
     lr = 0.0002
@@ -191,7 +238,22 @@ def main():
     # valid_loader = DataLoader(
     # val_dataset, batch_size=batch_size, shuffle=True, drop_last=True
     # )
+
     train(netD, netG, optimizerD, optimizerG, num_epochs, train_loader, criterion, device)
-    
+    accuracy, precision, recall, validation_loss, cm, hss_score, tss_score = validate_model(netD, test_loader, device, is_test=True)
+    print (f"TSS score {tss_score}")
+    print (f"HSS score {hss_score}")
+    print (f"Accuracy {accuracy}")
+    print (f"Precision {precision}")
+    print (f"Recall {recall}")
+    wandb.log({
+        
+            "Test accuracy": accuracy,
+            "Test tn, fp, fn, tp":str(cm.ravel()),
+            "Test confusion_matrix" : cm,
+            "Test precision": precision,
+            "Test recall": recall,
+            "Test TSS": tss_score,
+            "Test HSS": hss_score})
 if __name__ == "__main__":
     main()
