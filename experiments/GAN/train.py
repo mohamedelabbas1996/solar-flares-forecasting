@@ -11,6 +11,8 @@ import torch.optim as optim
 from torch.utils.data import DataLoader
 from dataset import MagnetogramDataset
 import numpy as np
+from tqdm import tqdm
+
 
 def train(netD, netG,optimizerD, optimizerG, num_epochs, dataloader, criterion, device):
     # Lists to keep track of progress
@@ -25,12 +27,13 @@ def train(netD, netG,optimizerD, optimizerG, num_epochs, dataloader, criterion, 
     # For each epoch
     for epoch in range(num_epochs):
         # For each batch in the dataloader
-        for i, (data,target) in enumerate(dataloader, 0):
+        for i, (data, target) in enumerate(tqdm(dataloader, desc=f"Epoch {epoch+1}/{num_epochs}")):
 
             ############################
             # (1) Update D network: maximize log(D(x)) + log(1 - D(G(z)))
             ###########################
             ## Train with all-real batch
+            print(data.shape)
             netD.zero_grad()
             # Format batch
             real_cpu = data[0].to(device)
@@ -46,7 +49,7 @@ def train(netD, netG,optimizerD, optimizerG, num_epochs, dataloader, criterion, 
 
             ## Train with all-fake batch
             # Generate batch of latent vectors
-            noise = torch.randn(b_size, nz, 1, 1, device=device)
+            noise = torch.randn(b_size, 100, 1, 1, device=device)
             # Generate fake image batch with G
             fake = netG(noise)
             label.fill_(fake_label)
