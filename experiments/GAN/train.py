@@ -35,7 +35,6 @@ def train(netD, netG,optimizerD, optimizerG, num_epochs, dataloader, criterion, 
             # (1) Update D network: maximize log(D(x)) + log(1 - D(G(z)))
             ###########################
             ## Train with all-real batch
-            print(data.shape)
             netD.zero_grad()
             # Format batch
             real_cpu = data.to(device)
@@ -123,7 +122,7 @@ def main():
     # Beta1 hyperparameter for Adam optimizers
     beta1 = 0.5
     batch_size = 64
-    num_epochs = 1
+    num_epochs = 3
     img_size = 64
 
     sharp_df = pd.read_csv("datasets/sharp_sun_et_al/sharp_sun_et_al_filtered.csv")
