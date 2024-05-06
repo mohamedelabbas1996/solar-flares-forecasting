@@ -136,8 +136,7 @@ def validate_model(model, validation_loader, device, is_test=False):
 
     with torch.no_grad():
         for data, target in validation_loader:
-            data = data.unsqueeze(1)  # Assuming your model needs this shape
-            target = target.unsqueeze(1).float()  # Adjust for your model's expected input
+            target = target.unsqueeze(1).float()  
             data, target, model = data.to(device), target.to(device), model.to(device)
             output = model(data)
             loss = F.binary_cross_entropy_with_logits(output, target)
