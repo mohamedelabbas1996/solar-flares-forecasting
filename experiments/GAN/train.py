@@ -202,8 +202,8 @@ def main():
 
 # Calculate the number of regions for each split
     num_test_regions = int(len(unique_regions) * 0.2)
-    num_val_regions = int(len(unique_regions) * 0.2)
-    num_train_regions = len(unique_regions) - num_test_regions - num_val_regions
+    #num_val_regions = int(len(unique_regions) * 0.2)
+    num_train_regions = len(unique_regions) - num_test_regions  #- num_val_regions
 
 # Randomly select regions for each split
     test_regions = np.random.choice(unique_regions, size=num_test_regions, replace=False)
@@ -219,13 +219,14 @@ def main():
     test_dataset, batch_size=batch_size, shuffle=True, drop_last=True
 )
     remaining_regions = np.setdiff1d(unique_regions, test_regions)
-    val_regions = np.random.choice(remaining_regions, size=num_val_regions, replace=False)
-    train_regions = np.setdiff1d(remaining_regions, val_regions)
+    #val_regions = np.random.choice(remaining_regions, size=num_val_regions, replace=False)
     
-    train_df = sharp_df[sharp_df['region_no'].isin(val_regions)]
-    train_df = balance_df(train_df)
-    val_df = sharp_df[sharp_df['region_no'].isin(train_regions)]
-    val_df = balance_df(val_df)
+    #train_regions = np.setdiff1d(remaining_regions, val_regions)
+    
+    train_df = sharp_df[sharp_df['region_no'].isin(remaining_regions)]
+    # train_df = balance_df(train_df)
+    # val_df = sharp_df[sharp_df['region_no'].isin(train_regions)]
+    # val_df = balance_df(val_df)
 
     train_df = train_df[train_df['label']== True]
     train_dataset = MagnetogramDataset(train_df, magnetograms_dirs=["data/SHARP/sharp_magnetograms_sun_et_al_decompressed/sharp_magnetograms_sun_et_al_compressed_1","data/SHARP/sharp_data_all_magnetograms"], resize=64)
