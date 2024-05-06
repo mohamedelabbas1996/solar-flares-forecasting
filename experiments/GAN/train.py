@@ -145,8 +145,7 @@ def main():
     config = dict(
     model_architecture = str(optimizerD) + "\n"+str(optimizerG),
     learning_rate = lr,
-    optimizer_name = f"optimizerD = Adam(netD.parameters(), lr={lr}, betas=({beta1}, 0.999))
-    optimizerG = Adam(netG.parameters(), lr={lr}, betas=({beta1}, 0.999)) ",
+    optimizer_name = f"optimizerD = Adam(netD.parameters(), lr={lr}, betas=({beta1}, 0.999))\n optimizerG = Adam(netG.parameters(), lr={lr}, betas=({beta1}, 0.999)) ",
     batch_size =  batch_size,
     num_epochs = num_epochs,
     loss_function = "nn.BCELoss()"
