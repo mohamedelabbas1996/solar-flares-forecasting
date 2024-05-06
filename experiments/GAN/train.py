@@ -8,7 +8,6 @@ import wandb
 import pandas as pd 
 import torch.nn as nn
 import torch.optim as optim
-import matplotlib.pyplot as plt
 from torch.utils.data import DataLoader
 from dataset import MagnetogramDataset
 import numpy as np
@@ -26,7 +25,7 @@ def train(netD, netG,optimizerD, optimizerG, num_epochs, dataloader, criterion, 
     # For each epoch
     for epoch in range(num_epochs):
         # For each batch in the dataloader
-        for i, data in enumerate(dataloader, 0):
+        for i, (data,target) in enumerate(dataloader, 0):
 
             ############################
             # (1) Update D network: maximize log(D(x)) + log(1 - D(G(z)))
@@ -95,14 +94,7 @@ def train(netD, netG,optimizerD, optimizerG, num_epochs, dataloader, criterion, 
                 img_list.append(vutils.make_grid(fake, padding=2, normalize=True))
 
             iters += 1
-    plt.figure(figsize=(10,5))
-    plt.title("Generator and Discriminator Loss During Training")
-    plt.plot(G_losses,label="G")
-    plt.plot(D_losses,label="D")
-    plt.xlabel("iterations")
-    plt.ylabel("Loss")
-    plt.legend()
-    plt.show()
+    
 
 
 def weights_init(m):
@@ -182,16 +174,18 @@ def main():
     train_df = balance_df(train_df)
     val_df = sharp_df[sharp_df['region_no'].isin(train_regions)]
     val_df = balance_df(val_df)
+
+    train_df = train_df[train_df['label']== True]
     train_dataset = MagnetogramDataset(train_df, magnetograms_dirs=["data/SHARP/sharp_magnetograms_sun_et_al_decompressed/sharp_magnetograms_sun_et_al_compressed_1","data/SHARP/sharp_data_all_magnetograms"])
 
     train_loader = DataLoader(
         train_dataset, batch_size=batch_size, shuffle=True, drop_last=True
     )
-    val_dataset = MagnetogramDataset(val_df, magnetograms_dirs=["data/SHARP/sharp_magnetograms_sun_et_al_decompressed/sharp_magnetograms_sun_et_al_compressed_1","data/SHARP/sharp_data_all_magnetograms"])
+    # val_dataset = MagnetogramDataset(val_df, magnetograms_dirs=["data/SHARP/sharp_magnetograms_sun_et_al_decompressed/sharp_magnetograms_sun_et_al_compressed_1","data/SHARP/sharp_data_all_magnetograms"])
 
-    valid_loader = DataLoader(
-    val_dataset, batch_size=batch_size, shuffle=True, drop_last=True
-    )
+    # valid_loader = DataLoader(
+    # val_dataset, batch_size=batch_size, shuffle=True, drop_last=True
+    # )
     train(netD, netG, optimizerD, optimizerG, num_epochs, train_loader, criterion, device)
     
 if __name__ == "__main__":
