@@ -10,6 +10,7 @@ import torchvision.transforms as T
 import torch
 from icecream import ic
 import os
+import torchvision.transforms as transforms
 
 SHARP_MEAN = -0.2474091108857478
 SHARP_VAR = 7043.963865528345
@@ -51,7 +52,7 @@ class SolarFlaresData(Dataset):
     def __len__(self):
         return self.df.shape[0]
 class MagnetogramDataset(Dataset):
-    def __init__(self, dataframe, magnetograms_dirs=["data/SHARP/magnetograms" ]):
+    def __init__(self, dataframe, magnetograms_dirs=["data/SHARP/magnetograms" ], resize=None):
         """
         Args:
             dataframe (DataFrame): DataFrame containing the paths to magnetograms and labels.
@@ -59,8 +60,7 @@ class MagnetogramDataset(Dataset):
         """
         self.dataframe = dataframe.reset_index(drop=True)
         self.magnetograms_dirs = magnetograms_dirs
-       
-    
+        self.resize = resize
 
     def __len__(self):
         return len(self.dataframe)
@@ -87,6 +87,8 @@ class MagnetogramDataset(Dataset):
         overall_std = np.sqrt(SHARP_VAR)
         # Normalize the magnetogram
         normalized_magnetogram = (magnetogram - SHARP_MEAN) / overall_std
+        if self.resize:
+            normalized_magnetogram = transforms.Resize(self.resize)(normalized_magnetogram)
         label = torch.tensor(1).long() if label==True  else  torch.tensor(0).long()# Assuming label is an integer class label
         
         

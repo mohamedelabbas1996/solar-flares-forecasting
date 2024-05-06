@@ -22,6 +22,8 @@ def train(netD, netG,optimizerD, optimizerG, num_epochs, dataloader, criterion, 
     iters = 0
     real_label = 1.
     fake_label = 0.
+    image_size = 64
+
     fixed_noise = torch.randn(64, 100, 1, 1, device=device)
     print("Starting Training Loop...")
     # For each epoch
@@ -122,6 +124,7 @@ def main():
     beta1 = 0.5
     batch_size = 64
     num_epochs = 1
+    img_size = 64
 
     sharp_df = pd.read_csv("datasets/sharp_sun_et_al/sharp_sun_et_al_filtered.csv")
     device = "cuda" if torch.cuda.is_available() else "cpu"
@@ -179,7 +182,7 @@ def main():
     val_df = balance_df(val_df)
 
     train_df = train_df[train_df['label']== True]
-    train_dataset = MagnetogramDataset(train_df, magnetograms_dirs=["data/SHARP/sharp_magnetograms_sun_et_al_decompressed/sharp_magnetograms_sun_et_al_compressed_1","data/SHARP/sharp_data_all_magnetograms"])
+    train_dataset = MagnetogramDataset(train_df, magnetograms_dirs=["data/SHARP/sharp_magnetograms_sun_et_al_decompressed/sharp_magnetograms_sun_et_al_compressed_1","data/SHARP/sharp_data_all_magnetograms"], resize=64)
 
     train_loader = DataLoader(
         train_dataset, batch_size=batch_size, shuffle=True, drop_last=True
