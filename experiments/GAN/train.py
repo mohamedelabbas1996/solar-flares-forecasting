@@ -139,7 +139,7 @@ def validate_model(model, validation_loader, device, is_test=False):
             target = target.unsqueeze(1).float()  
             data, target, model = data.to(device), target.to(device), model.to(device)
             output = model(data)
-            loss = F.binary_cross_entropy_with_logits(output.squeeze(), target)
+            loss = F.binary_cross_entropy_with_logits(output.squeeze().unsqueeze(1), target)
             val_running_loss += loss.item()
 
             preds = torch.round(torch.sigmoid(output))
