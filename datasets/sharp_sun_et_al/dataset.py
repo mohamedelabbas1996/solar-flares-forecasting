@@ -88,7 +88,7 @@ class MagnetogramDataset(Dataset):
         # Normalize the magnetogram
         normalized_magnetogram = (magnetogram - SHARP_MEAN) / overall_std
         if self.resize:
-            normalized_magnetogram = transforms.Resize(self.resize)(normalized_magnetogram)
+            normalized_magnetogram = transforms.Resize(self.resize)(normalized_magnetogram.unsqueeze(0))
         label = torch.tensor(1).long() if label==True  else  torch.tensor(0).long()# Assuming label is an integer class label
         
         
