@@ -213,7 +213,7 @@ def main():
     test_df = sharp_df[sharp_df['region_no'].isin(test_regions)]
     test_df = balance_df(test_df) 
     test_df.to_csv("datasets/sharp_sun_et_al/sharp_sun_et_al_test.csv")
-    test_dataset = MagnetogramDataset(test_df, magnetograms_dirs=["data/SHARP/sharp_magnetograms_sun_et_al_decompressed/sharp_magnetograms_sun_et_al_compressed_1","data/SHARP/sharp_data_all_magnetograms"])
+    test_dataset = MagnetogramDataset(test_df, magnetograms_dirs=["data/SHARP/sharp_magnetograms_sun_et_al_decompressed/sharp_magnetograms_sun_et_al_compressed_1","data/SHARP/sharp_data_all_magnetograms"], resize=64)
 
     test_loader = DataLoader(
     test_dataset, batch_size=batch_size, shuffle=True, drop_last=True
