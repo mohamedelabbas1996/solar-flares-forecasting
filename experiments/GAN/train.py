@@ -13,6 +13,7 @@ from dataset import MagnetogramDataset
 import numpy as np
 from tqdm import tqdm
 from sklearn.metrics import accuracy_score, precision_score, recall_score, confusion_matrix
+import torch.nn.functional as F
 
 def train(netD, netG,optimizerD, optimizerG, num_epochs, dataloader, criterion, device):
     # Lists to keep track of progress
