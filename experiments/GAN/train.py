@@ -36,7 +36,6 @@ def train(netD, netG,optimizerD, optimizerG, num_epochs, dataloader, criterion, 
             ###########################
             ## Train with all-real batch
             print(data.shape)
-            data = data.unsqueeze(1)
             netD.zero_grad()
             # Format batch
             real_cpu = data.to(device)
