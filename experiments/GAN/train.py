@@ -136,6 +136,7 @@ def validate_model(model, validation_loader, device, is_test=False):
 
     with torch.no_grad():
         for data, target in validation_loader:
+            target = 1 - target
             target = target.unsqueeze(1).float()  
             data, target, model = data.to(device), target.to(device), model.to(device)
             output = model(data)
@@ -228,7 +229,7 @@ def main():
     # val_df = sharp_df[sharp_df['region_no'].isin(train_regions)]
     # val_df = balance_df(val_df)
 
-    train_df = train_df[train_df['label']== True]
+    train_df = train_df[train_df['label']== False]
     train_dataset = MagnetogramDataset(train_df, magnetograms_dirs=["data/SHARP/sharp_magnetograms_sun_et_al_decompressed/sharp_magnetograms_sun_et_al_compressed_1","data/SHARP/sharp_data_all_magnetograms"], resize=128)
 
     train_loader = DataLoader(
