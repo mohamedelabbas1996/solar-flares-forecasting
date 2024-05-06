@@ -36,7 +36,7 @@ def train(netD, netG,optimizerD, optimizerG, num_epochs, dataloader, criterion, 
             data = data.unsqueeze(1)
             netD.zero_grad()
             # Format batch
-            real_cpu = data[0].to(device)
+            real_cpu = data.to(device)
             b_size = real_cpu.size(0)
             label = torch.full((b_size,), real_label, dtype=torch.float, device=device)
             # Forward pass real batch through D
