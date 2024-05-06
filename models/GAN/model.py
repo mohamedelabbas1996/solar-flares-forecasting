@@ -1,10 +1,10 @@
 import torch.nn as nn
 import torch
 
-ngf = 128
+ngf = 64
 nz = 100
 nc = 1 
-ndf = 128
+ndf = 64
 
 class Generator(nn.Module):
     def __init__(self, ngpu):
