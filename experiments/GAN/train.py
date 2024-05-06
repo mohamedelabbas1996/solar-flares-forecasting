@@ -170,7 +170,7 @@ def main():
     # Beta1 hyperparameter for Adam optimizers
     beta1 = 0.5
     batch_size = 64
-    num_epochs = 3
+    num_epochs = 1
     img_size = 64
 
     sharp_df = pd.read_csv("datasets/sharp_sun_et_al/sharp_sun_et_al_filtered.csv")
