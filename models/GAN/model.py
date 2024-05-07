@@ -1,10 +1,10 @@
 import torch.nn as nn
 import torch
 
-ngf = 64
+ngf = 128
 nz = 100
 nc = 1 
-ndf = 64
+ndf = 128
 
 class Generator(nn.Module):
     def __init__(self, ngpu):
@@ -28,8 +28,8 @@ class Generator(nn.Module):
             nn.BatchNorm2d(ngf),
             nn.ReLU(True),
             # state size. ``(ngf) x 32 x 32``
-            nn.ConvTranspose2d( ngf, nc, 4, 2, 1, bias=False),
-            nn.Tanh()
+            nn.ConvTranspose2d( ngf, nc, 6, 4, 1, bias=False),
+            nn.Tanh(),
             # state size. ``(nc) x 64 x 64``
         )
 
@@ -59,7 +59,7 @@ class Discriminator(nn.Module):
             nn.BatchNorm2d(ndf * 8),
             nn.LeakyReLU(0.2, inplace=True),
             # state size. ``(ndf*8) x 4 x 4``
-            nn.Conv2d(ndf * 8, 1, 4, 1, 0, bias=False),
+            nn.Conv2d(ndf * 8, 1, 8, 1, 0, bias=False),
             nn.Sigmoid()
         )
 
@@ -67,8 +67,17 @@ class Discriminator(nn.Module):
         return self.main(input)
     
 if __name__ == "__main__":
-        x = torch.rand(1,1,128, 128)
+        x = torch.rand(16,1,128, 128)
+        z = torch.randn(16, 100, 1, 1)
+        label = torch.randint(0, 2, size=(16,), dtype=torch.float)
         d = Discriminator(1)
         g = Generator(1)
-        print(g(d(x)).shape)
+        criterion = nn.BCELoss()
+        output = d(x).view(-1)
+        print (f"discriminator output shape {d(x).view(-1).shape}")
+        print(f"generateor output shape {g(z).shape}")
+        # Calculate loss on all-real batch
+       # errD_real = criterion(output, label)
+
+     
         
