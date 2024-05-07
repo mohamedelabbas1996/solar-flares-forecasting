@@ -11,4 +11,5 @@ module purge
 module --force purge
 source solar-flares-forecasting/bin/activate
 module --force purge
-python experiments/cnn-sun-et-al/train.py --lr 0.001 --batch_size 64 --num_epochs 20 --debug
+#python experiments/cnn-sun-et-al/train.py --lr 0.001 --batch_size 64 --num_epochs 20 --debug
+python experiments/GAN/train.py
