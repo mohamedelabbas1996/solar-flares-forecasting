@@ -242,6 +242,11 @@ def main():
     # )
 
     train(netD, netG, optimizerD, optimizerG, num_epochs, train_loader, criterion, device)
+    
+    torch.save(netD.state_dict(), "checkpoints/GAN_discriminator_model_checkpoint.pth")
+    wandb.save("checkpoints/GAN_discriminator_model_checkpoint.pth")
+    torch.save(netG.state_dict(), "checkpoints/GAN_generator_model_checkpoint.pth")
+    wandb.save("checkpoints/GAN_generator_model_checkpoint.pth")
     accuracy, precision, recall, validation_loss, cm, hss_score, tss_score = validate_model(netD, test_loader, device, is_test=True)
     print (f"TSS score {tss_score}")
     print (f"HSS score {hss_score}")
